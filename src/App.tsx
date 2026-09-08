@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { InstallPrompt } from './components/InstallPrompt'
 import { Nav } from './components/Nav'
 import { useLoopStore } from './hooks/useLoopStore'
 import { ChatThread } from './pages/ChatThread'
@@ -14,11 +15,17 @@ export default function App() {
     store.state.onboarded && !location.pathname.startsWith('/chats/')
 
   if (!store.state.onboarded) {
-    return <Onboarding onDone={store.completeOnboarding} />
+    return (
+      <>
+        <InstallPrompt />
+        <Onboarding onDone={store.completeOnboarding} />
+      </>
+    )
   }
 
   return (
     <div className="app-shell">
+      <InstallPrompt />
       {showNav && <Nav />}
       <main className="app-main">
         <Routes>

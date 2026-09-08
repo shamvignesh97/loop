@@ -451,3 +451,38 @@ button { cursor: pointer; }
   .app-shell { max-width: 880px; }
   .why-panel { right: calc(50% - 420px); }
 }
+
+/* Install / Add to Home Screen */
+.install-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 18px 0;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--pane-border);
+  background: var(--pane);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+}
+.install-banner-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.install-banner-copy strong {
+  font-size: 0.95rem;
+}
+.install-banner-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.install-btn {
+  padding: 10px 14px;
+  white-space: nowrap;
+}

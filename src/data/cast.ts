@@ -27,7 +27,7 @@ export const CAST: Contact[] = [
     bio: 'Dance floor historian. Sends voice notes at 1am.',
     tags: ['dance', 'funny', 'night'],
     opening: 'okay but hear me out — your for-you feed is lying to you.',
-    avatar: '/avatars/mira.jpg',
+    avatar: `${import.meta.env.BASE_URL}avatars/mira.jpg`,
     color: '#6ee7b7',
     fallbackReplies: [
       'that skip was loud. Mira noticed.',
@@ -44,7 +44,7 @@ export const CAST: Contact[] = [
     bio: 'Soft lighting enthusiast. Frames every selfie like a campaign.',
     tags: ['looks', 'style', 'art'],
     opening: 'your taste is public now. try not to embarrass us.',
-    avatar: '/avatars/jordan.jpg',
+    avatar: `${import.meta.env.BASE_URL}avatars/jordan.jpg`,
     color: '#93c5fd',
     fallbackReplies: [
       'clean fit. the algorithm agrees — reluctantly.',
@@ -61,7 +61,7 @@ export const CAST: Contact[] = [
     bio: 'Late-night DJ brain. Sibling energy with Jordan.',
     tags: ['music', 'witty', 'night'],
     opening: 'queue is open. what are we ranking tonight?',
-    avatar: '/avatars/rafi.jpg',
+    avatar: `${import.meta.env.BASE_URL}avatars/rafi.jpg`,
     color: '#c4b5fd',
     fallbackReplies: [
       'that reply slapped. putting it in the A-side.',
@@ -78,7 +78,7 @@ export const CAST: Contact[] = [
     bio: 'Sketchbook open. Asks the questions that stick.',
     tags: ['art', 'deep', 'books'],
     opening: 'i saved your silence for later. want it back?',
-    avatar: '/avatars/nico.jpg',
+    avatar: `${import.meta.env.BASE_URL}avatars/nico.jpg`,
     color: '#fda4af',
     fallbackReplies: [
       'interesting choice. what were you avoiding?',

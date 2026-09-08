@@ -22,7 +22,7 @@ export function Onboarding({
   return (
     <div className="page onboarding">
       <div className="hero-brand">
-        <img src="/brand.jpg" alt="" className="brand-bg" />
+        <img src={`${import.meta.env.BASE_URL}brand.jpg`} alt="" className="brand-bg" />
         <div className="hero-overlay">
           <Wordmark />
         </div>

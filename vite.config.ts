@@ -96,6 +96,7 @@ function xaiChatPlugin(): Plugin {
 }
 
 export default defineConfig({
+  base: '/loop/',
   plugins: [react(), xaiChatPlugin()],
   server: {
     port: 8080,
