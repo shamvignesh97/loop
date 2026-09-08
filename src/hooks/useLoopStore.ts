@@ -69,7 +69,10 @@ export function useLoopStore() {
       if (action === 'like' && !likedIds.includes(contactId)) {
         likedIds.push(contactId)
       }
-      if (action === 'share' && !sharedIds.includes(contactId)) {
+      if (
+        (action === 'share' || action === 'share_copy') &&
+        !sharedIds.includes(contactId)
+      ) {
         sharedIds.push(contactId)
       }
 

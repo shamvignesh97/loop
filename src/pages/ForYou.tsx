@@ -35,12 +35,20 @@ export function ForYou({ store }: { store: LoopStore }) {
             onSkip={() => store.consume(contact.id, 'skip')}
             onLike={() => store.consume(contact.id, 'like')}
             onShare={() => {
-              store.consume(contact.id, 'share')
+              const invite = `${window.location.origin}${import.meta.env.BASE_URL}foryou`
+              const payload = {
+                title: `Loop · ${contact.name}`,
+                text: contact.opening,
+                url: invite,
+              }
               if (navigator.share) {
-                void navigator.share({
-                  title: `Loop · ${contact.name}`,
-                  text: contact.opening,
-                }).catch(() => {})
+                store.consume(contact.id, 'share')
+                void navigator.share(payload).catch(() => {})
+              } else if (navigator.clipboard?.writeText) {
+                store.consume(contact.id, 'share_copy')
+                void navigator.clipboard.writeText(invite).catch(() => {})
+              } else {
+                store.consume(contact.id, 'share')
               }
             }}
             onOpen={() => {

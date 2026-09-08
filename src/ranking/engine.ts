@@ -2,13 +2,19 @@ import {
   ACTIONS,
   AUTHOR_CLUSTERS,
   EXPLORE_EPSILON,
+  IG_BLEND,
+  IG_REELS,
   RERANK_EVERY,
   UPDATE,
-  WEIGHTS,
+  X_BLEND,
+  X_WEIGHTS,
   type Action,
   type Contact,
+  type IgSignal,
   type ScoredCandidate,
+  type SignalPreds,
   type TasteState,
+  type XSignal,
 } from './types'
 
 export function createEmptyTaste(seedTags: string[] = []): TasteState {
@@ -66,14 +72,68 @@ export function fatiguePenalty(taste: TasteState): number {
   return -Math.min(1.2, taste.sessionActions * 0.035)
 }
 
-/** Base logit prior per action before fit modifiers */
+/** Base logit prior per Loop UX action before fit modifiers */
 const ACTION_BIAS: Record<Action, number> = {
   like: 0.4,
   reply: 0.6,
   share: -0.2,
+  share_copy: -0.45,
   rewatch: 0.1,
   dwell: 0.5,
   skip: 0.2,
+}
+
+/**
+ * Map Loop action probabilities onto IG Reels + X signal preds.
+ * like → favorite / like · reply → reply · share → share / send
+ * share_copy → share_via_copy_link · dwell/open → watch / completion
+ * skip → skip / not_interested · strong affinity proxies → follow_author
+ */
+export function mapLoopProbsToSignals(p: Record<Action, number>): SignalPreds {
+  const shareMass = (p.share ?? 0) + (p.share_copy ?? 0)
+  return {
+    // IG Reels
+    watch: p.dwell ?? 0,
+    send: shareMass,
+    like: p.like ?? 0,
+    save: p.rewatch ?? 0,
+    skip: p.skip ?? 0,
+    completion: 0.55 * (p.dwell ?? 0) + 0.45 * (p.rewatch ?? 0),
+    // X
+    favorite: p.like ?? 0,
+    reply: p.reply ?? 0,
+    retweet: 0.35 * (p.share ?? 0),
+    quote: 0.25 * (p.reply ?? 0),
+    share: p.share ?? 0,
+    share_via_dm: 0.5 * (p.share ?? 0),
+    share_via_copy_link: p.share_copy ?? 0.12 * (p.share ?? 0),
+    follow_author: 0.4 * (p.like ?? 0) + 0.6 * (p.reply ?? 0),
+    report: 0,
+    mute_author: 0,
+    block_author: 0,
+    not_interested: p.skip ?? 0,
+  }
+}
+
+/** 0.55 · IG + 0.45 · X combined ranking score */
+export function combinedScore(preds: SignalPreds): {
+  score: number
+  ig: number
+  x: number
+} {
+  let ig = 0
+  for (const k of Object.keys(IG_REELS) as IgSignal[]) {
+    ig += IG_REELS[k] * (preds[k] ?? 0)
+  }
+  let x = 0
+  for (const k of Object.keys(X_WEIGHTS) as XSignal[]) {
+    x += X_WEIGHTS[k] * (preds[k] ?? 0)
+  }
+  return {
+    score: IG_BLEND * ig + X_BLEND * x,
+    ig,
+    x,
+  }
 }
 
 export function scoreContact(
@@ -91,9 +151,9 @@ export function scoreContact(
     if (a === 'skip') {
       logits[a] = ACTION_BIAS[a] - fit * 0.9
     } else {
-      logits[a] =
-        ACTION_BIAS[a] +
-        fit * (a === 'reply' || a === 'share' ? 1.1 : 0.85)
+      const boost =
+        a === 'reply' || a === 'share' || a === 'share_copy' ? 1.1 : 0.85
+      logits[a] = ACTION_BIAS[a] + fit * boost
     }
   }
 
@@ -103,14 +163,23 @@ export function scoreContact(
     p[a] = probs[i]
   })
 
-  let score = 0
-  for (const a of ACTIONS) score += p[a] * WEIGHTS[a]
+  const preds = mapLoopProbsToSignals(p)
+  const { score, ig, x } = combinedScore(preds)
 
   return {
     id: contact.id,
     score,
     p,
-    breakdown: { tagFit: tf, authorFit: af, boredom, fatigue, logits },
+    breakdown: {
+      tagFit: tf,
+      authorFit: af,
+      boredom,
+      fatigue,
+      logits,
+      ig,
+      x,
+      preds,
+    },
   }
 }
 
@@ -134,6 +203,8 @@ export function rankContacts(
 
 export function actionStrength(action: Action): number {
   switch (action) {
+    case 'share_copy':
+      return 1.8
     case 'share':
       return 1.4
     case 'reply':
@@ -198,4 +269,12 @@ export function markReranked(taste: TasteState): TasteState {
   return { ...taste, consumedSinceRerank: 0 }
 }
 
-export { WEIGHTS, ACTIONS, RERANK_EVERY, EXPLORE_EPSILON }
+export {
+  ACTIONS,
+  EXPLORE_EPSILON,
+  IG_BLEND,
+  IG_REELS,
+  RERANK_EVERY,
+  X_BLEND,
+  X_WEIGHTS,
+}
