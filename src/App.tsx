@@ -1,0 +1,35 @@
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Nav } from './components/Nav'
+import { useLoopStore } from './hooks/useLoopStore'
+import { ChatThread } from './pages/ChatThread'
+import { Chats } from './pages/Chats'
+import { ForYou } from './pages/ForYou'
+import { Onboarding } from './pages/Onboarding'
+import { Taste } from './pages/Taste'
+
+export default function App() {
+  const store = useLoopStore()
+  const location = useLocation()
+  const showNav =
+    store.state.onboarded && !location.pathname.startsWith('/chats/')
+
+  if (!store.state.onboarded) {
+    return <Onboarding onDone={store.completeOnboarding} />
+  }
+
+  return (
+    <div className="app-shell">
+      {showNav && <Nav />}
+      <main className="app-main">
+        <Routes>
+          <Route path="/" element={<Navigate to="/foryou" replace />} />
+          <Route path="/foryou" element={<ForYou store={store} />} />
+          <Route path="/chats" element={<Chats store={store} />} />
+          <Route path="/chats/:id" element={<ChatThread store={store} />} />
+          <Route path="/taste" element={<Taste store={store} />} />
+          <Route path="*" element={<Navigate to="/foryou" replace />} />
+        </Routes>
+      </main>
+    </div>
+  )
+}
