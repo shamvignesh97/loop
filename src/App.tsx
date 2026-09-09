@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { InstallPrompt } from './components/InstallPrompt'
 import { Nav } from './components/Nav'
+import { UpdatePrompt } from './components/UpdatePrompt'
 import { useLoopStore } from './hooks/useLoopStore'
 import { ChatThread } from './pages/ChatThread'
 import { Chats } from './pages/Chats'
@@ -18,6 +19,7 @@ export default function App() {
     return (
       <>
         <InstallPrompt />
+        <UpdatePrompt />
         <Onboarding onDone={store.completeOnboarding} />
       </>
     )
@@ -26,7 +28,8 @@ export default function App() {
   return (
     <div className="app-shell">
       <InstallPrompt />
-      {showNav && <Nav />}
+      <UpdatePrompt />
+      {showNav && <Nav store={store} />}
       <main className="app-main">
         <Routes>
           <Route path="/" element={<Navigate to="/foryou" replace />} />

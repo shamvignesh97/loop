@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "oxlint",
-    "deploy": "gh-pages -d dist"
+    "deploy": "bash scripts/build-pages.sh && gh-pages -d dist",
+    "build:pages": "bash scripts/build-pages.sh"
   },
   "dependencies": {
     "react": "^19.2.8",

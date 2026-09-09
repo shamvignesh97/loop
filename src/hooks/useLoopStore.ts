@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CAST, getContact } from '../data/cast'
 import {
   applyAction,
@@ -8,6 +8,16 @@ import {
 } from '../ranking/engine'
 import type { Action, ScoredCandidate } from '../ranking/types'
 import {
+  createProfile,
+  deleteProfile,
+  ensureProfiles,
+  getActiveProfile,
+  listProfiles,
+  renameProfile,
+  setActiveProfileId,
+  type ProfileMeta,
+} from '../storage/profiles'
+import {
   type PersistedLoop,
   defaultPersisted,
   loadPersisted,
@@ -15,11 +25,33 @@ import {
 } from '../storage/taste'
 
 export function useLoopStore() {
-  const [state, setState] = useState<PersistedLoop>(() => loadPersisted())
+  const [profiles, setProfiles] = useState<ProfileMeta[]>(() =>
+    listProfiles(),
+  )
+  const [activeProfileId, setActiveId] = useState(() => {
+    ensureProfiles()
+    return getActiveProfile().id
+  })
+  const [activeName, setActiveName] = useState(() => getActiveProfile().name)
+  const [state, setState] = useState<PersistedLoop>(() =>
+    loadPersisted(activeProfileId),
+  )
+  const profileIdRef = useRef(activeProfileId)
 
   useEffect(() => {
-    savePersisted(state)
+    profileIdRef.current = activeProfileId
+  }, [activeProfileId])
+
+  useEffect(() => {
+    savePersisted(state, profileIdRef.current)
   }, [state])
+
+  const refreshProfiles = useCallback(() => {
+    const list = listProfiles()
+    setProfiles(list)
+    const active = list.find((p) => p.id === profileIdRef.current) ?? list[0]
+    setActiveName(active.name)
+  }, [])
 
   const scored: ScoredCandidate[] = useMemo(
     () => rankContacts(CAST, state.taste, () => 0.5),
@@ -170,6 +202,54 @@ export function useLoopStore() {
     setState(defaultPersisted())
   }, [])
 
+  const switchProfile = useCallback((id: string) => {
+    if (id === profileIdRef.current) return
+    savePersisted(state, profileIdRef.current)
+    setActiveProfileId(id)
+    profileIdRef.current = id
+    setActiveId(id)
+    setState(loadPersisted(id))
+    refreshProfiles()
+  }, [state, refreshProfiles])
+
+  const addProfile = useCallback(
+    (name: string) => {
+      savePersisted(state, profileIdRef.current)
+      const profile = createProfile(name)
+      profileIdRef.current = profile.id
+      setActiveId(profile.id)
+      setState(defaultPersisted())
+      refreshProfiles()
+    },
+    [state, refreshProfiles],
+  )
+
+  const updateProfileName = useCallback(
+    (id: string, name: string) => {
+      renameProfile(id, name)
+      refreshProfiles()
+    },
+    [refreshProfiles],
+  )
+
+  const removeProfile = useCallback(
+    (id: string) => {
+      if (profiles.length <= 1) return
+      const wasActive = id === profileIdRef.current
+      if (wasActive) {
+        savePersisted(state, profileIdRef.current)
+      }
+      const next = deleteProfile(id)
+      refreshProfiles()
+      if (wasActive) {
+        profileIdRef.current = next.activeId
+        setActiveId(next.activeId)
+        setState(loadPersisted(next.activeId))
+      }
+    },
+    [profiles.length, state, refreshProfiles],
+  )
+
   const getScore = useCallback(
     (id: string) => scoredMap.get(id),
     [scoredMap],
@@ -192,6 +272,13 @@ export function useLoopStore() {
     sendMessage,
     resetAll,
     getScore,
+    profiles,
+    activeProfileId,
+    activeProfileName: activeName,
+    switchProfile,
+    addProfile,
+    updateProfileName,
+    removeProfile,
   }
 }
 

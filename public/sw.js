@@ -1,5 +1,5 @@
 /* Loop app-shell service worker — caches shell for offline open */
-const CACHE = 'loop-shell-v3'
+const CACHE = 'loop-shell-v4'
 
 function basePath() {
   try {
@@ -39,11 +39,20 @@ self.addEventListener('activate', (event) => {
   )
 })
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
+})
+
 self.addEventListener('fetch', (event) => {
   const req = event.request
   if (req.method !== 'GET') return
   const url = new URL(req.url)
   if (url.origin !== self.location.origin) return
+
+  // Never cache the API
+  if (url.pathname.includes('/api/')) return
 
   if (req.mode === 'navigate') {
     event.respondWith(

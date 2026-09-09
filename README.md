@@ -9,11 +9,23 @@ Loop ports a public-style ranking equation into conversations, blending Instagra
 - **Onboarding** -- pick two or more tags (or start with Funny + looks)
 - **For You** -- contacts scored like clips; skip, like, share, or open
 - **Chats** -- a ranked inbox that reorders every 5 actions
-- **Taste** -- live tag/author affinities and the boredom window
+- **Taste** -- live tag/author affinities, boredom window, and **local profiles**
 - **Why this** -- sheet from For You cards: IG vs X blend (55/45) breakdown
 - **Bottom tabs** -- For You / Chats / Taste (mobile-app shell)
 
-Contacts reply in character via the xAI API (grok-4.5) when XAI_API_KEY is set, and fall back to written lines when it is not.
+Contacts reply in character via the xAI API (grok-4.5) when the chat API key env var is set, and fall back to written lines when it is not.
+
+## Multi-user (local profiles)
+
+Loop has **no shared server database**. Each visitor browser is independent, so many people can use the same live URL at once without colliding.
+
+On one device you can create and switch **local profiles** (display name):
+
+- Profile list: `loop-profiles-v1`
+- Taste / chats per profile: `loop-chat-v2:<profileId>`
+- Legacy single-key `loop-chat-v2` is migrated into the default profile on first load
+
+The shell avatar menu and Taste page show **Signed in locally as ...** so it is clear this is on-device only.
 
 ## Ranking (the product)
 
@@ -41,7 +53,12 @@ Same author clusters share affinity (Jordan + Rafi, Nico + Asha, Priya + Tess, E
 
 ## Run locally
 
-Install deps, then start the Vite dev server on port 8080.
+Install deps, copy env example, then start the Vite dev server on port 8080.
+Default build base is root. Pages builds use the build:pages script (sets Vite base under /loop/).
+
+## Hosting notes
+
+Import the GitHub repo on Vercel with Vite defaults. Connect Git so main redeploys. See root config for SPA rewrites and the api folder for the chat proxy. PWA shows Refresh when a new service worker is ready.
 
 ## Try
 
@@ -49,3 +66,4 @@ Install deps, then start the Vite dev server on port 8080.
 2. Like Mira
 3. Open a chat and reply
 4. Skip cards and watch re-rank
+5. Create a second local profile on Taste and switch back

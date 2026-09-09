@@ -1,11 +1,14 @@
 import { AUTHOR_CLUSTERS } from '../ranking/types'
 import type { LoopStore } from '../hooks/useLoopStore'
 import { ALL_TAGS } from '../data/cast'
+import { ProfileSwitcher } from '../components/ProfileSwitcher'
+import { tasteStorageKey } from '../storage/profiles'
 
 export function Taste({ store }: { store: LoopStore }) {
   const { taste, selectedTags, likedIds, skippedIds } = store.state
   const tagEntries = Object.entries(taste.tags).sort((a, b) => b[1] - a[1])
   const authorEntries = Object.entries(taste.authors).sort((a, b) => b[1] - a[1])
+  const keyHint = tasteStorageKey(store.activeProfileId)
 
   return (
     <div className="page taste">
@@ -13,13 +16,15 @@ export function Taste({ store }: { store: LoopStore }) {
         <div>
           <h1>Taste</h1>
           <p className="muted">
-            Affinities live in localStorage · loop-chat-v2
+            Signed in locally as {store.activeProfileName} · {keyHint}
           </p>
         </div>
         <button type="button" className="ghost" onClick={store.resetAll}>
           Reset
         </button>
       </header>
+
+      <ProfileSwitcher store={store} />
 
       <section className="pane">
         <h3>Seed tags</h3>

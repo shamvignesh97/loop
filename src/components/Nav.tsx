@@ -1,5 +1,7 @@
 import { NavLink } from 'react-router-dom'
+import type { LoopStore } from '../hooks/useLoopStore'
 import { Logo } from './Logo'
+import { ProfileSwitcher } from './ProfileSwitcher'
 
 function IconForYou({ active }: { active: boolean }) {
   return (
@@ -74,13 +76,17 @@ function IconTaste({ active }: { active: boolean }) {
   )
 }
 
-export function Nav() {
+export function Nav({ store }: { store: LoopStore }) {
   return (
     <>
       <header className="top-brand">
+        <div className="top-brand-spacer" aria-hidden />
         <NavLink to="/foryou" className="nav-brand" aria-label="Loop home">
           <Logo size="sm" />
         </NavLink>
+        <div className="top-brand-actions">
+          <ProfileSwitcher store={store} compact />
+        </div>
       </header>
       <nav className="bottom-nav" aria-label="Primary">
         <NavLink to="/foryou" className={({ isActive }) => (isActive ? 'tab active' : 'tab')}>

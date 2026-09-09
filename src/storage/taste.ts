@@ -1,6 +1,12 @@
 import type { TasteState } from '../ranking/types'
 import { createEmptyTaste } from '../ranking/engine'
+import {
+  ensureProfiles,
+  getActiveProfileId,
+  tasteStorageKey,
+} from './profiles'
 
+/** @deprecated Prefer tasteStorageKey(profileId). Kept for docs / migration notes. */
 export const STORAGE_KEY = 'loop-chat-v2'
 
 export interface ThreadMessage {
@@ -38,9 +44,11 @@ export function defaultPersisted(seedTags: string[] = []): PersistedLoop {
   }
 }
 
-export function loadPersisted(): PersistedLoop {
+export function loadPersisted(profileId?: string): PersistedLoop {
+  ensureProfiles()
+  const id = profileId ?? getActiveProfileId()
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(tasteStorageKey(id))
     if (!raw) return defaultPersisted()
     const parsed = JSON.parse(raw) as PersistedLoop
     if (parsed.version !== 2) return defaultPersisted()
@@ -50,10 +58,17 @@ export function loadPersisted(): PersistedLoop {
   }
 }
 
-export function savePersisted(state: PersistedLoop): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+export function savePersisted(
+  state: PersistedLoop,
+  profileId?: string,
+): void {
+  ensureProfiles()
+  const id = profileId ?? getActiveProfileId()
+  localStorage.setItem(tasteStorageKey(id), JSON.stringify(state))
 }
 
-export function clearPersisted(): void {
-  localStorage.removeItem(STORAGE_KEY)
+export function clearPersisted(profileId?: string): void {
+  ensureProfiles()
+  const id = profileId ?? getActiveProfileId()
+  localStorage.removeItem(tasteStorageKey(id))
 }
