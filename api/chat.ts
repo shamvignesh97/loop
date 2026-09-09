@@ -1,4 +1,6 @@
-import { proxyXaiChat, type ChatBody } from './xaiShared'
+import { proxyXaiChat, type ChatBody } from './xaiShared.js'
+
+declare const process: { env: Record<string, string | undefined> }
 
 type Req = {
   method?: string
