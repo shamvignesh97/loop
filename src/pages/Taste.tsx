@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom'
 import { AUTHOR_CLUSTERS } from '../ranking/types'
 import type { LoopStore } from '../hooks/useLoopStore'
-import { ALL_TAGS } from '../data/cast'
+import { ALL_TAGS, getContact } from '../data/cast'
 import { ProfileSwitcher } from '../components/ProfileSwitcher'
 import { tasteStorageKey } from '../storage/profiles'
 
 export function Taste({ store }: { store: LoopStore }) {
-  const { taste, selectedTags, likedIds, skippedIds } = store.state
+  const { taste, selectedTags, likedIds, skippedIds, mutedIds } = store.state
+  const muted = mutedIds ?? []
   const tagEntries = Object.entries(taste.tags).sort((a, b) => b[1] - a[1])
   const authorEntries = Object.entries(taste.authors).sort((a, b) => b[1] - a[1])
   const keyHint = tasteStorageKey(store.activeProfileId)
@@ -140,6 +141,33 @@ export function Taste({ store }: { store: LoopStore }) {
           ))}
         </ul>
       </section>
+
+      {muted.length > 0 && (
+        <section className="pane muted-section">
+          <h3>Muted</h3>
+          <div className="tag-row muted-chip-row">
+            {muted.map((id) => {
+              const contact = getContact(id)
+              const label = contact?.name ?? id
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className="tag muted-chip"
+                  onClick={() => store.toggleMute(id)}
+                  aria-label={`Unmute ${label}`}
+                  title={`Unmute ${label}`}
+                >
+                  <span>{label}</span>
+                  <span className="muted-chip-x" aria-hidden>
+                    ×
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </section>
+      )}
     </div>
   )
 }

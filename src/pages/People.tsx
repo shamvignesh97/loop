@@ -115,13 +115,14 @@ export function People({ store }: { store: LoopStore }) {
                 <Avatar contact={contact} size={48} />
                 <div className="card-body">
                   <div className="card-top">
-                    <h3>
-                      {contact.name}
+                    <div className="people-title">
+                      <h3 className="people-name">{contact.name}</h3>
                       {isFollowed && (
                         <span className="follow-badge">following</span>
                       )}
                       {isMuted && <span className="mute-badge">muted</span>}
-                    </h3>
+                    </div>
+                    <span className="persona-badge">Persona</span>
                   </div>
                   <p className="people-overlap">{badge}</p>
                   <p className="preview">{contact.bio}</p>

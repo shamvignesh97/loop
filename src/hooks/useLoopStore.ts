@@ -490,6 +490,10 @@ export function useLoopStore(authUid: string, displayName?: string) {
     })
   }, [])
 
+  const restoreState = useCallback((snapshot: PersistedLoop) => {
+    setState(normalizePersisted(structuredClone(snapshot)))
+  }, [])
+
   const getScore = useCallback(
     (id: string) => scoredMap.get(id),
     [scoredMap],
@@ -517,6 +521,7 @@ export function useLoopStore(authUid: string, displayName?: string) {
     notInterested,
     moreLikeThis,
     lessLikeThis,
+    restoreState,
     profiles,
     activeProfileId,
     activeProfileName: activeName,

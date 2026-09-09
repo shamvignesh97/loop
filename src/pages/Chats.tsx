@@ -36,6 +36,7 @@ export function Chats({ store }: { store: LoopStore }) {
                 <div className="card-body">
                   <div className="card-top">
                     <h3 className="inbox-name">{contact.name}</h3>
+                    <span className="persona-badge">Persona</span>
                   </div>
                   <p className="preview">{last?.text ?? contact.opening}</p>
                 </div>

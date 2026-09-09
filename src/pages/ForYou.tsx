@@ -8,12 +8,20 @@ import {
   isHighRelevance,
   rankingReasonChip,
 } from '../ranking/reasons'
+import type { PersistedLoop } from '../storage/taste'
+
+type UndoToast = {
+  kind: 'more' | 'less'
+  snapshot: PersistedLoop
+}
 
 export function ForYou({ store }: { store: LoopStore }) {
   const nav = useNavigate()
   const [whyId, setWhyId] = useState<string | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const [muteToast, setMuteToast] = useState<string | null>(null)
+  const [undoToast, setUndoToast] = useState<UndoToast | null>(null)
   const toastTimer = useRef<number | null>(null)
+  const pendingSnap = useRef<PersistedLoop | null>(null)
 
   const muted = store.state.mutedIds ?? []
   const feed = store.rankedContacts.filter(
@@ -38,10 +46,52 @@ export function ForYou({ store }: { store: LoopStore }) {
     }
   }, [])
 
-  const showToast = (message: string) => {
-    setToast(message)
-    if (toastTimer.current) window.clearTimeout(toastTimer.current)
-    toastTimer.current = window.setTimeout(() => setToast(null), 2200)
+  const clearToastTimer = () => {
+    if (toastTimer.current) {
+      window.clearTimeout(toastTimer.current)
+      toastTimer.current = null
+    }
+  }
+
+  const showMuteToast = (message: string) => {
+    setUndoToast(null)
+    setMuteToast(message)
+    clearToastTimer()
+    toastTimer.current = window.setTimeout(() => setMuteToast(null), 2200)
+  }
+
+  const showUndoToast = (kind: 'more' | 'less', snapshot: PersistedLoop) => {
+    setMuteToast(null)
+    setUndoToast({ kind, snapshot })
+    clearToastTimer()
+    toastTimer.current = window.setTimeout(() => {
+      setUndoToast(null)
+      toastTimer.current = null
+    }, 4000)
+  }
+
+  const beginFeedback = (contactId: string, kind: 'more' | 'less') => {
+    pendingSnap.current = structuredClone(store.state)
+    if (kind === 'more') store.moreLikeThis(contactId)
+    else store.lessLikeThis(contactId)
+  }
+
+  const onFeedbackToast = (kind: 'more' | 'less' | 'mute') => {
+    if (kind === 'mute') {
+      pendingSnap.current = null
+      showMuteToast('Got it, muted this topic')
+      return
+    }
+    const snap = pendingSnap.current
+    pendingSnap.current = null
+    if (snap) showUndoToast(kind, snap)
+  }
+
+  const undoFeedback = () => {
+    if (!undoToast) return
+    clearToastTimer()
+    store.restoreState(undoToast.snapshot)
+    setUndoToast(null)
   }
 
   return (
@@ -80,10 +130,10 @@ export function ForYou({ store }: { store: LoopStore }) {
                 reasonChip={reason}
                 highRelevance={isHighRelevance(scored, feedScores)}
                 exploratory={exploratory}
-                onMoreLikeThis={() => store.moreLikeThis(contact.id)}
-                onLessInFeed={() => store.lessLikeThis(contact.id)}
+                onMoreLikeThis={() => beginFeedback(contact.id, 'more')}
+                onLessInFeed={() => beginFeedback(contact.id, 'less')}
                 onMuteTopic={() => store.notInterested(contact.id)}
-                onFeedbackToast={showToast}
+                onFeedbackToast={onFeedbackToast}
                 onShare={() => {
                   const invite = `${window.location.origin}${import.meta.env.BASE_URL}foryou`
                   const payload = {
@@ -129,9 +179,29 @@ export function ForYou({ store }: { store: LoopStore }) {
         )}
       </div>
 
-      {toast && (
+      {undoToast && (
+        <div
+          className={`loop-toast undo-toast accent-${undoToast.kind}`}
+          role="status"
+          aria-live="polite"
+        >
+          <span>
+            {undoToast.kind === 'more'
+              ? 'Marked as more like this'
+              : 'Marked as less like this'}
+          </span>
+          <span className="undo-sep" aria-hidden>
+            ·
+          </span>
+          <button type="button" className="undo-btn" onClick={undoFeedback}>
+            Undo
+          </button>
+        </div>
+      )}
+
+      {muteToast && !undoToast && (
         <div className="loop-toast" role="status" aria-live="polite">
-          {toast}
+          {muteToast}
         </div>
       )}
 

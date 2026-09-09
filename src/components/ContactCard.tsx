@@ -35,7 +35,7 @@ export function ContactCard({
   onMoreLikeThis?: () => void
   onLessInFeed?: () => void
   onMuteTopic?: () => void
-  onFeedbackToast?: (message: string) => void
+  onFeedbackToast?: (kind: 'more' | 'less' | 'mute') => void
 }) {
   const [offsetX, setOffsetX] = useState(0)
   const [dragging, setDragging] = useState(false)
@@ -64,20 +64,20 @@ export function ContactCard({
     onMoreLikeThis?.()
     triggerFlash('more')
     setChipDone('more')
-    onFeedbackToast?.('Got it, showing more like this')
+    onFeedbackToast?.('more')
   }
 
   const runLess = () => {
     onLessInFeed?.()
     triggerFlash('less')
     setChipDone('less')
-    onFeedbackToast?.('Got it, showing less of this')
+    onFeedbackToast?.('less')
   }
 
   const runMute = () => {
     onMuteTopic?.()
     setChipDone('mute')
-    onFeedbackToast?.('Got it, muted this topic')
+    onFeedbackToast?.('mute')
   }
 
   const onTouchStart = (e: React.TouchEvent) => {
