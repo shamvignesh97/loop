@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { CAST } from '../data/cast'
 import { createEmptyTaste, scoreContact } from './engine'
-import { isHighRelevance, rankingReasonChip } from './reasons'
+import {
+  caughtUpCount,
+  isHighRelevance,
+  peopleOverlapBadge,
+  rankingReasonChip,
+} from './reasons'
 
 describe('rankingReasonChip', () => {
   it('labels explore swaps', () => {
@@ -39,5 +44,36 @@ describe('isHighRelevance', () => {
     const scores = scored.map((s) => s.score)
     const top = [...scored].sort((a, b) => b.score - a.score)[0]
     expect(isHighRelevance(top, scores)).toBe(true)
+  })
+})
+
+describe('caughtUpCount', () => {
+  it('caps high-confidence prefix to 3–5 with room below', () => {
+    const scores = [0.9, 0.8, 0.7, 0.6, 0.4, 0.3, 0.2, 0.1]
+    const n = caughtUpCount(scores)
+    expect(n).toBeGreaterThanOrEqual(3)
+    expect(n).toBeLessThanOrEqual(5)
+    expect(n).toBeLessThan(scores.length)
+  })
+
+  it('returns full length for tiny feeds', () => {
+    expect(caughtUpCount([0.5, 0.4])).toBe(2)
+  })
+})
+
+describe('peopleOverlapBadge', () => {
+  it('prefers similar taste language over percents', () => {
+    const taste = createEmptyTaste(['funny', 'dance'])
+    taste.tags.funny = 0.9
+    const mira = CAST.find((c) => c.id === 'mira')!
+    const badge = peopleOverlapBadge(mira, taste, ['funny', 'dance'])
+    expect(badge).toMatch(/Similar taste|Mutual/)
+    expect(badge).not.toMatch(/%/)
+  })
+
+  it('falls back to New to Loop', () => {
+    const taste = createEmptyTaste([])
+    const mira = CAST.find((c) => c.id === 'mira')!
+    expect(peopleOverlapBadge(mira, taste, [])).toBe('New to Loop')
   })
 })

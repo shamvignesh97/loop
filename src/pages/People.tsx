@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ALL_TAGS, CAST } from '../data/cast'
 import { Avatar } from '../components/Avatar'
 import type { LoopStore } from '../hooks/useLoopStore'
+import { peopleOverlapBadge } from '../ranking/reasons'
 
 export function People({ store }: { store: LoopStore }) {
   const nav = useNavigate()
@@ -92,10 +93,15 @@ export function People({ store }: { store: LoopStore }) {
       </div>
 
       <div className="people-list">
-        {rows.map(({ contact, scored }) => {
+        {rows.map(({ contact }) => {
           const isFollowed = followed.includes(contact.id)
           const isMuted = muted.includes(contact.id)
           const isLiked = store.state.likedIds.includes(contact.id)
+          const badge = peopleOverlapBadge(
+            contact,
+            store.state.taste,
+            store.state.selectedTags,
+          )
           return (
             <article
               key={contact.id}
@@ -116,10 +122,8 @@ export function People({ store }: { store: LoopStore }) {
                       )}
                       {isMuted && <span className="mute-badge">muted</span>}
                     </h3>
-                    <span className="score-pill" title="Affinity score">
-                      {scored.score.toFixed(2)}
-                    </span>
                   </div>
+                  <p className="people-overlap">{badge}</p>
                   <p className="preview">{contact.bio}</p>
                   <div className="tag-row">
                     {contact.tags.map((t) => (

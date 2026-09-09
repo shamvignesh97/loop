@@ -56,3 +56,43 @@ export function isHighRelevance(
   const cutoff = sorted[cutoffIdx] ?? sorted[0]
   return scored.score >= cutoff - 1e-9
 }
+
+/** How many top cards count as “caught up” before exploratory picks. */
+export function caughtUpCount(scores: number[]): number {
+  if (scores.length <= 2) return scores.length
+  const sortedAsc = [...scores].sort((a, b) => a - b)
+  const median = sortedAsc[Math.floor(sortedAsc.length / 2)] ?? scores[0]
+  let above = 0
+  for (const s of scores) {
+    if (s >= median - 1e-9) above++
+    else break
+  }
+  const capped = Math.min(5, Math.max(3, above || 3))
+  return Math.min(capped, scores.length - 1)
+}
+
+/** Qualitative People-row badge — never a percent or raw score. */
+export function peopleOverlapBadge(
+  contact: { tags: string[]; id: string },
+  taste: TasteState,
+  selectedTags: string[] = [],
+): string {
+  const selected = selectedTags.length > 0 ? selectedTags : Object.keys(taste.tags)
+  const mutual = contact.tags.filter(
+    (t) => selected.includes(t) || (taste.tags[t] ?? 0) >= 0.25,
+  )
+  const topTaste = contact.tags
+    .map((t) => ({ t, v: taste.tags[t] ?? 0 }))
+    .sort((a, b) => b.v - a.v)[0]
+
+  if (topTaste && topTaste.v >= 0.4) {
+    return `Similar taste in ${topTaste.t}`
+  }
+  if (mutual.length >= 2) {
+    return `Mutual: ${mutual.length} topics`
+  }
+  if (mutual.length === 1) {
+    return `Similar taste in ${mutual[0]}`
+  }
+  return 'New to Loop'
+}

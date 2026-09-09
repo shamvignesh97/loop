@@ -461,6 +461,35 @@ export function useLoopStore(authUid: string, displayName?: string) {
     })
   }, [])
 
+  /** Soft demote: skip weight + author/tag down — card stays in feed. */
+  const lessLikeThis = useCallback((contactId: string) => {
+    const contact = getContact(contactId)
+    if (!contact) return
+    setState((prev) => {
+      let taste = applyAction(prev.taste, contact, 'skip')
+      const authors = { ...taste.authors }
+      authors[contactId] = Math.max(-1.5, (authors[contactId] ?? 0) - 0.45)
+      const tags = { ...taste.tags }
+      for (const t of contact.tags) {
+        tags[t] = Math.max(-1, (tags[t] ?? 0) - 0.12)
+      }
+      taste = { ...taste, authors, tags }
+      const followedIds = prev.followedIds ?? []
+      const mutedIds = prev.mutedIds ?? []
+      const socialNow = { followedIds, mutedIds }
+      const rankedIds = rankContacts(CAST, taste, Math.random, socialNow).map(
+        (s) => s.id,
+      )
+      taste = markReranked(taste)
+      return {
+        ...prev,
+        taste,
+        rankedIds,
+        lastWhyId: contactId,
+      }
+    })
+  }, [])
+
   const getScore = useCallback(
     (id: string) => scoredMap.get(id),
     [scoredMap],
@@ -487,6 +516,7 @@ export function useLoopStore(authUid: string, displayName?: string) {
     toggleMute,
     notInterested,
     moreLikeThis,
+    lessLikeThis,
     profiles,
     activeProfileId,
     activeProfileName: activeName,
