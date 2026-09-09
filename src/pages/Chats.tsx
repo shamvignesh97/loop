@@ -1,18 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { Avatar } from '../components/Avatar'
-import { WhyThis } from '../components/WhyThis'
 import type { LoopStore } from '../hooks/useLoopStore'
-import { useState } from 'react'
 
 export function Chats({ store }: { store: LoopStore }) {
   const nav = useNavigate()
-  const [whyId, setWhyId] = useState<string | null>(null)
 
   const threads = store.rankedContacts.filter(
     ({ contact }) => store.state.threads[contact.id]?.length,
   )
-
-  const whyScored = whyId ? store.getScore(whyId) ?? null : null
 
   return (
     <div className="page chats">
@@ -24,7 +19,7 @@ export function Chats({ store }: { store: LoopStore }) {
       </header>
 
       <div className="inbox-list">
-        {threads.map(({ contact, scored }) => {
+        {threads.map(({ contact }) => {
           const msgs = store.state.threads[contact.id] ?? []
           const last = msgs[msgs.length - 1]
           return (
@@ -41,17 +36,9 @@ export function Chats({ store }: { store: LoopStore }) {
                 <div>
                   <div className="card-top">
                     <h3>{contact.name}</h3>
-                    <span className="score-pill">{scored.score.toFixed(2)}</span>
                   </div>
                   <p className="preview">{last?.text ?? contact.opening}</p>
                 </div>
-              </button>
-              <button
-                type="button"
-                className="act why"
-                onClick={() => setWhyId(contact.id)}
-              >
-                Why
               </button>
             </div>
           )
@@ -63,10 +50,6 @@ export function Chats({ store }: { store: LoopStore }) {
           </p>
         )}
       </div>
-
-      {whyId && (
-        <WhyThis scored={whyScored} onClose={() => setWhyId(null)} />
-      )}
     </div>
   )
 }
