@@ -15,10 +15,9 @@ createRoot(document.getElementById('root')!).render(
 )
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    const swUrl = `${import.meta.env.BASE_URL}sw.js`
-    navigator.serviceWorker.register(swUrl).catch(() => {
-      /* offline install still works without SW on first visit */
-    })
+  const swUrl = `${import.meta.env.BASE_URL}sw.js`
+  // Register immediately so updates are discovered without waiting for window load
+  navigator.serviceWorker.register(swUrl).catch(() => {
+    /* offline install still works without SW on first visit */
   })
 }

@@ -1,5 +1,7 @@
 /* Loop app-shell service worker — caches shell for offline open */
-const CACHE = 'loop-shell-v5'
+/* BUILD_ID is replaced at build time so every deploy changes SW bytes */
+const BUILD = '__LOOP_BUILD_ID__'
+const CACHE = 'loop-shell-v6-' + BUILD
 
 function basePath() {
   try {
@@ -7,6 +9,27 @@ function basePath() {
   } catch {
     return '/'
   }
+}
+
+function isAsset(url) {
+  const p = url.pathname
+  return (
+    p.includes('/assets/') ||
+    p.endsWith('.js') ||
+    p.endsWith('.mjs') ||
+    p.endsWith('.css') ||
+    p.endsWith('.module.css')
+  )
+}
+
+function isImageOrIcon(url) {
+  const p = url.pathname
+  return (
+    /\.(png|jpg|jpeg|gif|webp|svg|ico|avif)$/i.test(p) ||
+    p.includes('icon-') ||
+    p.endsWith('favicon.svg') ||
+    p.endsWith('brand.jpg')
+  )
 }
 
 self.addEventListener('install', (event) => {
@@ -54,6 +77,7 @@ self.addEventListener('fetch', (event) => {
   // Never cache the API
   if (url.pathname.includes('/api/')) return
 
+  // Navigations: network-first, cache only as offline fallback
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req)
@@ -73,9 +97,10 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      const fetched = fetch(req)
+  // JS/CSS/modules: network-first — never prefer stale hashed bundles when online
+  if (isAsset(url)) {
+    event.respondWith(
+      fetch(req)
         .then((res) => {
           if (res && res.ok) {
             const copy = res.clone()
@@ -83,8 +108,46 @@ self.addEventListener('fetch', (event) => {
           }
           return res
         })
-        .catch(() => cached)
-      return cached || fetched
-    }),
+        .catch(async () => {
+          const cached = await caches.match(req)
+          return cached || Response.error()
+        }),
+    )
+    return
+  }
+
+  // Images/icons: stale-while-revalidate
+  if (isImageOrIcon(url)) {
+    event.respondWith(
+      caches.match(req).then((cached) => {
+        const fetched = fetch(req)
+          .then((res) => {
+            if (res && res.ok) {
+              const copy = res.clone()
+              caches.open(CACHE).then((c) => c.put(req, copy))
+            }
+            return res
+          })
+          .catch(() => cached)
+        return cached || fetched
+      }),
+    )
+    return
+  }
+
+  // Default: network-first with cache fallback
+  event.respondWith(
+    fetch(req)
+      .then((res) => {
+        if (res && res.ok) {
+          const copy = res.clone()
+          caches.open(CACHE).then((c) => c.put(req, copy))
+        }
+        return res
+      })
+      .catch(async () => {
+        const cached = await caches.match(req)
+        return cached || Response.error()
+      }),
   )
 })

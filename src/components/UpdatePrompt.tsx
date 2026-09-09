@@ -1,17 +1,52 @@
 import { useEffect, useState } from 'react'
 
-/** Toast when a new service worker is waiting after a deploy. */
+/** Auto-applies a waiting service worker and briefly shows “Updating…”. */
 export function UpdatePrompt() {
-  const [waiting, setWaiting] = useState<ServiceWorker | null>(null)
+  const [updating, setUpdating] = useState(false)
 
   useEffect(() => {
     if (!('serviceWorker' in navigator) || !import.meta.env.PROD) return
 
     let cancelled = false
     let intervalId = 0
+    let reloading = false
+    // First install: controller was null — do not reload on controllerchange
+    const hadControllerAtStart = !!navigator.serviceWorker.controller
+
+    const activateWaiting = (worker: ServiceWorker | null | undefined) => {
+      if (!worker || cancelled) return
+      setUpdating(true)
+      worker.postMessage({ type: 'SKIP_WAITING' })
+    }
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        navigator.serviceWorker.getRegistration().then((reg) => {
+          reg?.update().catch(() => undefined)
+        })
+      }
+    }
+    const onFocus = () => {
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        reg?.update().catch(() => undefined)
+      })
+    }
+    const onPageShow = () => {
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        reg?.update().catch(() => undefined)
+      })
+    }
+
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('pageshow', onPageShow)
+
+    let removeUpdateFound: (() => void) | undefined
 
     const track = (reg: ServiceWorkerRegistration) => {
-      if (reg.waiting) setWaiting(reg.waiting)
+      if (reg.waiting && navigator.serviceWorker.controller) {
+        activateWaiting(reg.waiting)
+      }
 
       const onUpdateFound = () => {
         const nw = reg.installing
@@ -22,15 +57,16 @@ export function UpdatePrompt() {
             navigator.serviceWorker.controller &&
             !cancelled
           ) {
-            setWaiting(nw)
+            activateWaiting(nw)
           }
         })
       }
       reg.addEventListener('updatefound', onUpdateFound)
+      removeUpdateFound = () => reg.removeEventListener('updatefound', onUpdateFound)
 
       intervalId = window.setInterval(() => {
         reg.update().catch(() => undefined)
-      }, 60_000)
+      }, 30_000)
     }
 
     navigator.serviceWorker.getRegistration().then((reg) => {
@@ -39,7 +75,10 @@ export function UpdatePrompt() {
     })
 
     const onControllerChange = () => {
-      window.location.reload()
+      if (!hadControllerAtStart || reloading || cancelled) return
+      reloading = true
+      setUpdating(true)
+      window.setTimeout(() => window.location.reload(), 500)
     }
     navigator.serviceWorker.addEventListener(
       'controllerchange',
@@ -49,6 +88,10 @@ export function UpdatePrompt() {
     return () => {
       cancelled = true
       window.clearInterval(intervalId)
+      removeUpdateFound?.()
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('pageshow', onPageShow)
       navigator.serviceWorker.removeEventListener(
         'controllerchange',
         onControllerChange,
@@ -56,19 +99,11 @@ export function UpdatePrompt() {
     }
   }, [])
 
-  if (!waiting) return null
-
-  function refresh() {
-    waiting?.postMessage({ type: 'SKIP_WAITING' })
-    window.setTimeout(() => window.location.reload(), 350)
-  }
+  if (!updating) return null
 
   return (
     <div className="update-toast" role="status">
-      <span>Update available — Refresh</span>
-      <button type="button" className="primary install-btn" onClick={refresh}>
-        Refresh
-      </button>
+      <span>Updating…</span>
     </div>
   )
 }
