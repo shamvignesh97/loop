@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useAuth } from '../auth'
 import type { LoopStore } from '../hooks/useLoopStore'
 import { profileInitials } from '../storage/profiles'
 
@@ -8,21 +9,35 @@ type Props = {
   compact?: boolean
 }
 
+function accountLabel(auth: ReturnType<typeof useAuth>): string {
+  const u = auth.user
+  if (!u) return 'Signed out'
+  if (u.email) return u.email
+  if (u.phoneNumber) return u.phoneNumber
+  if (u.isDevBypass) return 'Local dev session'
+  return u.displayName
+}
+
 export function ProfileSwitcher({ store, compact }: Props) {
+  const auth = useAuth()
   const [open, setOpen] = useState(false)
-  const [creating, setCreating] = useState(false)
-  const [name, setName] = useState('')
+  const label = accountLabel(auth)
+  const name = auth.user?.displayName || store.activeProfileName
+  const photo = auth.user?.photoURL
+  const initials = profileInitials(name)
 
-  const initials = profileInitials(store.activeProfileName)
-
-  function submitCreate() {
-    const n = name.trim()
-    if (!n) return
-    store.addProfile(n)
-    setName('')
-    setCreating(false)
+  async function onSignOut() {
     setOpen(false)
+    await auth.signOut()
   }
+
+  const avatar = photo ? (
+    <img src={photo} alt="" className="profile-avatar-img" />
+  ) : (
+    <span className="profile-avatar" aria-hidden>
+      {initials}
+    </span>
+  )
 
   if (compact) {
     return (
@@ -30,13 +45,17 @@ export function ProfileSwitcher({ store, compact }: Props) {
         <button
           type="button"
           className="profile-avatar-btn"
-          aria-label={`Signed in locally as ${store.activeProfileName}`}
+          aria-label={`Account: ${label}`}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
         >
-          <span className="profile-avatar" aria-hidden>
-            {initials}
-          </span>
+          {photo ? (
+            <img src={photo} alt="" className="profile-avatar-img" />
+          ) : (
+            <span className="profile-avatar" aria-hidden>
+              {initials}
+            </span>
+          )}
         </button>
         {open && (
           <>
@@ -48,61 +67,24 @@ export function ProfileSwitcher({ store, compact }: Props) {
             />
             <div className="profile-dropdown" role="menu">
               <p className="profile-signed">
-                Signed in locally as <strong>{store.activeProfileName}</strong>
+                Signed in as <strong>{name}</strong>
               </p>
+              <p className="muted profile-hint">{label}</p>
               <p className="muted profile-hint">
-                On-device only — other visitors keep their own browser storage.
+                Taste key{' '}
+                <code>loop-chat-v2:uid:&lt;uid&gt;</code>
+                {auth.user && !auth.user.isDevBypass
+                  ? ' · synced when Firestore is available'
+                  : ''}
               </p>
-              <ul className="profile-list">
-                {store.profiles.map((p) => (
-                  <li key={p.id}>
-                    <button
-                      type="button"
-                      className={
-                        p.id === store.activeProfileId
-                          ? 'profile-item active'
-                          : 'profile-item'
-                      }
-                      role="menuitem"
-                      onClick={() => {
-                        store.switchProfile(p.id)
-                        setOpen(false)
-                      }}
-                    >
-                      <span className="profile-avatar sm" aria-hidden>
-                        {profileInitials(p.name)}
-                      </span>
-                      <span>{p.name}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {creating ? (
-                <div className="profile-create">
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Display name"
-                    maxLength={32}
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') submitCreate()
-                      if (e.key === 'Escape') setCreating(false)
-                    }}
-                  />
-                  <button type="button" className="primary" onClick={submitCreate}>
-                    Add
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className="ghost wide"
-                  onClick={() => setCreating(true)}
-                >
-                  New profile
-                </button>
-              )}
+              <button
+                type="button"
+                className="ghost wide"
+                role="menuitem"
+                onClick={() => void onSignOut()}
+              >
+                Sign out
+              </button>
             </div>
           </>
         )}
@@ -112,61 +94,28 @@ export function ProfileSwitcher({ store, compact }: Props) {
 
   return (
     <section className="pane profile-pane">
-      <h3>Local profiles</h3>
-      <p className="muted">
-        Signed in locally as <strong>{store.activeProfileName}</strong>. Taste
-        is stored in this browser under{' '}
-        <code>loop-chat-v2:&lt;profileId&gt;</code> — not on a shared server.
-        Many people can use the same live URL; each device (and profile) stays
-        independent.
-      </p>
-      <ul className="profile-list roomy">
-        {store.profiles.map((p) => (
-          <li key={p.id} className="profile-row">
-            <button
-              type="button"
-              className={
-                p.id === store.activeProfileId
-                  ? 'profile-item active'
-                  : 'profile-item'
-              }
-              onClick={() => store.switchProfile(p.id)}
-            >
-              <span className="profile-avatar sm" aria-hidden>
-                {profileInitials(p.name)}
-              </span>
-              <span>{p.name}</span>
-              {p.id === store.activeProfileId && (
-                <span className="profile-badge">active</span>
-              )}
-            </button>
-            {store.profiles.length > 1 && (
-              <button
-                type="button"
-                className="ghost profile-delete"
-                aria-label={`Delete ${p.name}`}
-                onClick={() => store.removeProfile(p.id)}
-              >
-                Delete
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-      <div className="profile-create">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="New display name"
-          maxLength={32}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') submitCreate()
-          }}
-        />
-        <button type="button" className="primary" onClick={submitCreate}>
-          Create profile
-        </button>
+      <h3>Account</h3>
+      <div className="profile-account-row">
+        {avatar}
+        <div>
+          <p className="profile-signed" style={{ margin: 0 }}>
+            <strong>{name}</strong>
+          </p>
+          <p className="muted profile-hint" style={{ margin: '4px 0 0' }}>
+            {label}
+          </p>
+        </div>
       </div>
+      <p className="muted" style={{ marginTop: 12 }}>
+        Identity is your Google or phone account. Taste / follows are stored
+        under <code>loop-chat-v2:uid:&lt;firebaseUid&gt;</code>
+        {auth.user && !auth.user.isDevBypass
+          ? ' and optionally synced to Firestore for multi-device.'
+          : '.'}
+      </p>
+      <button type="button" className="ghost wide" onClick={() => void onSignOut()}>
+        Sign out
+      </button>
     </section>
   )
 }

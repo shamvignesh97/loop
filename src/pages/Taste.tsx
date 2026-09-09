@@ -16,7 +16,7 @@ export function Taste({ store }: { store: LoopStore }) {
         <div>
           <h1>Taste</h1>
           <p className="muted">
-            Signed in locally as {store.activeProfileName} · {keyHint}
+            Signed in as {store.activeProfileName} · {keyHint}
           </p>
         </div>
         <button type="button" className="ghost" onClick={store.resetAll}>

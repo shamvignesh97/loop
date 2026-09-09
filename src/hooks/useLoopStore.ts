@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { scheduleFirestoreSave, loadFromFirestore } from '../auth/sync'
 import { CAST, getContact } from '../data/cast'
 import {
   applyAction,
@@ -8,11 +9,13 @@ import {
 } from '../ranking/engine'
 import type { Action, ScoredCandidate } from '../ranking/types'
 import {
+  authProfileId,
   createProfile,
   deleteProfile,
   ensureProfiles,
   getActiveProfile,
   listProfiles,
+  migrateAnonymousIntoUid,
   renameProfile,
   setActiveProfileId,
   type ProfileMeta,
@@ -21,22 +24,65 @@ import {
   type PersistedLoop,
   defaultPersisted,
   loadPersisted,
+  normalizePersisted,
   savePersisted,
 } from '../storage/taste'
 
-export function useLoopStore() {
+export function useLoopStore(authUid: string, displayName?: string) {
+  const profileKey = authProfileId(authUid)
+
   const [profiles, setProfiles] = useState<ProfileMeta[]>(() =>
     listProfiles(),
   )
   const [activeProfileId, setActiveId] = useState(() => {
+    migrateAnonymousIntoUid(authUid)
     ensureProfiles()
-    return getActiveProfile().id
+    return profileKey
   })
-  const [activeName, setActiveName] = useState(() => getActiveProfile().name)
-  const [state, setState] = useState<PersistedLoop>(() =>
-    loadPersisted(activeProfileId),
+  const [activeName, setActiveName] = useState(
+    () => displayName || getActiveProfile().name,
   )
-  const profileIdRef = useRef(activeProfileId)
+  const [state, setState] = useState<PersistedLoop>(() =>
+    loadPersisted(profileKey),
+  )
+  const [cloudReady, setCloudReady] = useState(false)
+  const profileIdRef = useRef(profileKey)
+
+  // Switch storage bucket when auth uid changes (sign-in / account switch)
+  useEffect(() => {
+    migrateAnonymousIntoUid(authUid)
+    const key = authProfileId(authUid)
+    profileIdRef.current = key
+    setActiveId(key)
+    setActiveName(displayName || 'You')
+    setState(loadPersisted(key))
+    setCloudReady(false)
+
+    let cancelled = false
+    void (async () => {
+      const remote = await loadFromFirestore(authUid)
+      if (cancelled || !remote) {
+        if (!cancelled) setCloudReady(true)
+        return
+      }
+      const local = loadPersisted(key)
+      // Prefer cloud if local is empty/unonboarded and cloud has data
+      const preferCloud =
+        remote.onboarded &&
+        (!local.onboarded ||
+          local.taste.sessionActions < remote.taste.sessionActions)
+      if (preferCloud) {
+        const normalized = normalizePersisted(remote)
+        savePersisted(normalized, key)
+        if (!cancelled) setState(normalized)
+      }
+      if (!cancelled) setCloudReady(true)
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [authUid, displayName])
 
   useEffect(() => {
     profileIdRef.current = activeProfileId
@@ -44,14 +90,16 @@ export function useLoopStore() {
 
   useEffect(() => {
     savePersisted(state, profileIdRef.current)
-  }, [state])
+    if (cloudReady && authUid && !authUid.startsWith('dev-')) {
+      scheduleFirestoreSave(authUid, state)
+    }
+  }, [state, cloudReady, authUid])
 
   const refreshProfiles = useCallback(() => {
     const list = listProfiles()
     setProfiles(list)
-    const active = list.find((p) => p.id === profileIdRef.current) ?? list[0]
-    setActiveName(active.name)
-  }, [])
+    setActiveName(displayName || 'You')
+  }, [displayName])
 
   const social = useMemo(
     () => ({
@@ -226,15 +274,26 @@ export function useLoopStore() {
     setState(defaultPersisted())
   }, [])
 
-  const switchProfile = useCallback((id: string) => {
-    if (id === profileIdRef.current) return
-    savePersisted(state, profileIdRef.current)
-    setActiveProfileId(id)
-    profileIdRef.current = id
-    setActiveId(id)
-    setState(loadPersisted(id))
-    refreshProfiles()
-  }, [state, refreshProfiles])
+  const switchProfile = useCallback(
+    (id: string) => {
+      // When authenticated, primary identity is the auth uid bucket.
+      if (id === profileIdRef.current) return
+      if (id.startsWith('uid:')) {
+        savePersisted(state, profileIdRef.current)
+        profileIdRef.current = id
+        setActiveId(id)
+        setState(loadPersisted(id))
+        return
+      }
+      savePersisted(state, profileIdRef.current)
+      setActiveProfileId(id)
+      profileIdRef.current = id
+      setActiveId(id)
+      setState(loadPersisted(id))
+      refreshProfiles()
+    },
+    [state, refreshProfiles],
+  )
 
   const addProfile = useCallback(
     (name: string) => {
@@ -286,7 +345,6 @@ export function useLoopStore() {
         followedIds.splice(idx, 1)
       } else {
         followedIds.push(contactId)
-        // Boost author affinity (follow_author path)
         taste = applyAction(prev.taste, contact, 'like')
         const authors = { ...taste.authors }
         authors[contactId] = Math.min(
@@ -400,6 +458,7 @@ export function useLoopStore() {
     addProfile,
     updateProfileName,
     removeProfile,
+    authUid,
   }
 }
 

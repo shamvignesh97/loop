@@ -1,5 +1,8 @@
+import { storageUidKey, tasteKeyForUid } from '../auth/types'
+
 export const PROFILES_KEY = 'loop-profiles-v1'
 export const LEGACY_TASTE_KEY = 'loop-chat-v2'
+export const AUTH_MIGRATE_FLAG = 'loop-auth-migrated-v1'
 
 export interface ProfileMeta {
   id: string
@@ -14,6 +17,9 @@ export interface ProfilesState {
 }
 
 export function tasteStorageKey(profileId: string): string {
+  if (profileId.startsWith('uid:')) {
+    return `loop-chat-v2:${profileId}`
+  }
   return `loop-chat-v2:${profileId}`
 }
 
@@ -150,3 +156,46 @@ export function profileInitials(name: string): string {
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
   return (parts[0][0] + parts[1][0]).toUpperCase()
 }
+
+/**
+ * One-time migrate anonymous local taste into the authenticated uid bucket
+ * when the uid key is empty.
+ */
+export function migrateAnonymousIntoUid(firebaseUid: string): void {
+  const uidKey = tasteKeyForUid(firebaseUid)
+  try {
+    if (localStorage.getItem(uidKey)) return
+    const flag = `${AUTH_MIGRATE_FLAG}:${firebaseUid}`
+    if (localStorage.getItem(flag)) return
+
+    // Prefer active local profile taste, then any profile, then legacy key.
+    ensureProfiles()
+    const activeId = getActiveProfileId()
+    let source =
+      localStorage.getItem(tasteStorageKey(activeId)) ||
+      localStorage.getItem(LEGACY_TASTE_KEY)
+
+    if (!source) {
+      for (const p of listProfiles()) {
+        const raw = localStorage.getItem(tasteStorageKey(p.id))
+        if (raw) {
+          source = raw
+          break
+        }
+      }
+    }
+
+    if (source) {
+      localStorage.setItem(uidKey, source)
+    }
+    localStorage.setItem(flag, '1')
+  } catch {
+    /* ignore */
+  }
+}
+
+export function authProfileId(firebaseUid: string): string {
+  return storageUidKey(firebaseUid)
+}
+
+export { tasteKeyForUid }

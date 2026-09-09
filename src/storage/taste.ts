@@ -48,6 +48,20 @@ export function defaultPersisted(seedTags: string[] = []): PersistedLoop {
   }
 }
 
+export function normalizePersisted(parsed: PersistedLoop): PersistedLoop {
+  return {
+    ...defaultPersisted(),
+    ...parsed,
+    followedIds: parsed.followedIds ?? [],
+    mutedIds: parsed.mutedIds ?? [],
+    likedIds: parsed.likedIds ?? [],
+    sharedIds: parsed.sharedIds ?? [],
+    skippedIds: parsed.skippedIds ?? [],
+    threads: parsed.threads ?? {},
+    rankedIds: parsed.rankedIds ?? [],
+  }
+}
+
 export function loadPersisted(profileId?: string): PersistedLoop {
   ensureProfiles()
   const id = profileId ?? getActiveProfileId()
@@ -56,17 +70,7 @@ export function loadPersisted(profileId?: string): PersistedLoop {
     if (!raw) return defaultPersisted()
     const parsed = JSON.parse(raw) as PersistedLoop
     if (parsed.version !== 2) return defaultPersisted()
-    return {
-      ...defaultPersisted(),
-      ...parsed,
-      followedIds: parsed.followedIds ?? [],
-      mutedIds: parsed.mutedIds ?? [],
-      likedIds: parsed.likedIds ?? [],
-      sharedIds: parsed.sharedIds ?? [],
-      skippedIds: parsed.skippedIds ?? [],
-      threads: parsed.threads ?? {},
-      rankedIds: parsed.rankedIds ?? [],
-    }
+    return normalizePersisted(parsed)
   } catch {
     return defaultPersisted()
   }

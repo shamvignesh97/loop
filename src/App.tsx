@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { AuthScreen, useAuth } from './auth'
 import { InstallPrompt } from './components/InstallPrompt'
 import { Nav } from './components/Nav'
 import { UpdatePrompt } from './components/UpdatePrompt'
@@ -11,8 +12,14 @@ import { People } from './pages/People'
 import { PersonProfile } from './pages/PersonProfile'
 import { Taste } from './pages/Taste'
 
-export default function App() {
-  const store = useLoopStore()
+function AuthenticatedApp({
+  uid,
+  displayName,
+}: {
+  uid: string
+  displayName: string
+}) {
+  const store = useLoopStore(uid, displayName)
   const location = useLocation()
   const showNav =
     store.state.onboarded && !location.pathname.startsWith('/chats/')
@@ -45,5 +52,36 @@ export default function App() {
         </Routes>
       </main>
     </div>
+  )
+}
+
+export default function App() {
+  const auth = useAuth()
+
+  if (auth.status === 'loading') {
+    return (
+      <>
+        <InstallPrompt />
+        <UpdatePrompt />
+        <AuthScreen />
+      </>
+    )
+  }
+
+  if (auth.status !== 'signedIn' || !auth.user) {
+    return (
+      <>
+        <InstallPrompt />
+        <UpdatePrompt />
+        <AuthScreen />
+      </>
+    )
+  }
+
+  return (
+    <AuthenticatedApp
+      uid={auth.user.uid}
+      displayName={auth.user.displayName}
+    />
   )
 }
