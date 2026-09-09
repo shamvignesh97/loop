@@ -11,6 +11,7 @@ export function ContactCard({
   reasonChip,
   highRelevance,
   exploratory,
+  openLabel,
   onSkip,
   onLike,
   onShare,
@@ -27,6 +28,7 @@ export function ContactCard({
   reasonChip?: string
   highRelevance?: boolean
   exploratory?: boolean
+  openLabel?: string
   onSkip?: () => void
   onLike?: () => void
   onShare?: () => void
@@ -245,6 +247,18 @@ export function ContactCard({
       )}
 
       <div className="card-actions">
+        {onOpen && openLabel && (
+          <button
+            type="button"
+            className="act open-chat primary-act"
+            onClick={(e) => {
+              e.stopPropagation()
+              openCard()
+            }}
+          >
+            {openLabel}
+          </button>
+        )}
         {onMoreLikeThis && (
           <button
             type="button"

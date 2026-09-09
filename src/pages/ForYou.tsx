@@ -130,6 +130,11 @@ export function ForYou({ store }: { store: LoopStore }) {
                 reasonChip={reason}
                 highRelevance={isHighRelevance(scored, feedScores)}
                 exploratory={exploratory}
+                openLabel={
+                  (store.state.threads[contact.id] ?? []).some((m) => m.from === 'me')
+                    ? 'Open chat'
+                    : 'Start chat'
+                }
                 onMoreLikeThis={() => beginFeedback(contact.id, 'more')}
                 onLessInFeed={() => beginFeedback(contact.id, 'less')}
                 onMuteTopic={() => store.notInterested(contact.id)}
