@@ -326,9 +326,9 @@ button { cursor: pointer; }
 .inbox-row {
   display: flex;
   align-items: center;
-  padding-right: 10px;
+  padding-right: 0;
 }
-.inbox-main { flex: 1; }
+.inbox-main { flex: 1; width: 100%; }
 
 /* Why panel */
 .why-panel {
