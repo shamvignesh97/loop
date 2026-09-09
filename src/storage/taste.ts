@@ -24,6 +24,8 @@ export interface PersistedLoop {
   skippedIds: string[]
   likedIds: string[]
   sharedIds: string[]
+  followedIds: string[]
+  mutedIds: string[]
   threads: Record<string, ThreadMessage[]>
   rankedIds: string[]
   lastWhyId: string | null
@@ -38,6 +40,8 @@ export function defaultPersisted(seedTags: string[] = []): PersistedLoop {
     skippedIds: [],
     likedIds: [],
     sharedIds: [],
+    followedIds: [],
+    mutedIds: [],
     threads: {},
     rankedIds: [],
     lastWhyId: null,
@@ -52,7 +56,17 @@ export function loadPersisted(profileId?: string): PersistedLoop {
     if (!raw) return defaultPersisted()
     const parsed = JSON.parse(raw) as PersistedLoop
     if (parsed.version !== 2) return defaultPersisted()
-    return parsed
+    return {
+      ...defaultPersisted(),
+      ...parsed,
+      followedIds: parsed.followedIds ?? [],
+      mutedIds: parsed.mutedIds ?? [],
+      likedIds: parsed.likedIds ?? [],
+      sharedIds: parsed.sharedIds ?? [],
+      skippedIds: parsed.skippedIds ?? [],
+      threads: parsed.threads ?? {},
+      rankedIds: parsed.rankedIds ?? [],
+    }
   } catch {
     return defaultPersisted()
   }

@@ -7,6 +7,8 @@ import { ChatThread } from './pages/ChatThread'
 import { Chats } from './pages/Chats'
 import { ForYou } from './pages/ForYou'
 import { Onboarding } from './pages/Onboarding'
+import { People } from './pages/People'
+import { PersonProfile } from './pages/PersonProfile'
 import { Taste } from './pages/Taste'
 
 export default function App() {
@@ -36,6 +38,8 @@ export default function App() {
           <Route path="/foryou" element={<ForYou store={store} />} />
           <Route path="/chats" element={<Chats store={store} />} />
           <Route path="/chats/:id" element={<ChatThread store={store} />} />
+          <Route path="/people" element={<People store={store} />} />
+          <Route path="/people/:id" element={<PersonProfile store={store} />} />
           <Route path="/taste" element={<Taste store={store} />} />
           <Route path="*" element={<Navigate to="/foryou" replace />} />
         </Routes>

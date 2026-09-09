@@ -8,8 +8,11 @@ export function ForYou({ store }: { store: LoopStore }) {
   const nav = useNavigate()
   const [whyId, setWhyId] = useState<string | null>(null)
 
+  const muted = store.state.mutedIds ?? []
   const feed = store.rankedContacts.filter(
-    ({ contact }) => !store.state.skippedIds.includes(contact.id),
+    ({ contact }) =>
+      !store.state.skippedIds.includes(contact.id) &&
+      !muted.includes(contact.id),
   )
 
   const whyScored = whyId ? store.getScore(whyId) ?? null : null

@@ -1,4 +1,4 @@
-import type { Contact } from '../ranking/types'
+import { AUTHOR_CLUSTERS, type Contact } from '../ranking/types'
 
 export const ALL_TAGS = [
   'funny',
@@ -169,8 +169,81 @@ export const CAST: Contact[] = [
     systemPrompt:
       'You are Yumi, playful engineer. Tech metaphors, cute wit. Very short texts.',
   },
+  {
+    id: 'kai',
+    name: 'Kai',
+    bio: 'Mira\'s rehearsal buddy. Counts beats, not calories.',
+    tags: ['dance', 'music', 'funny'],
+    opening: 'eight-count check — you still in?',
+    color: '#5eead4',
+    fallbackReplies: [
+      'that like hit on the downbeat.',
+      'mira said you can move. prove the footwork.',
+      'skip means wrong tempo. we can change keys.',
+      'send the song stuck in your head.',
+    ],
+    systemPrompt:
+      'You are Kai, energetic dancer friend of Mira. Playful, rhythmic slang. Short texts.',
+  },
+  {
+    id: 'sam',
+    name: 'Sam',
+    bio: 'Weeknight cook. Treats recipes like soft launches.',
+    tags: ['food', 'witty', 'career'],
+    opening: 'plated something chaotic. taste-test?',
+    color: '#fdba74',
+    fallbackReplies: [
+      'seasoned your reply. needs acid — send a joke.',
+      'rio already booked the table. you coming?',
+      'liked = plated. now describe the bite.',
+      'skipped dinner with me? cold leftovers energy.',
+    ],
+    systemPrompt:
+      'You are Sam, witty home cook. Food metaphors, warm sarcasm. Brief texts.',
+  },
+  {
+    id: 'rio',
+    name: 'Rio',
+    bio: 'Golden-hour scout. Books flights for the lighting.',
+    tags: ['travel', 'style', 'night'],
+    opening: 'golden hour in 20. where are you standing?',
+    color: '#f9a8d4',
+    fallbackReplies: [
+      'that fit travels. stamp it.',
+      'sam packed snacks. i packed opinions.',
+      'city ranking: reply with yours.',
+      'skip is just a layover. reconnect?',
+    ],
+    systemPrompt:
+      'You are Rio, stylish traveler. Soft vibes, night energy. Short evocative texts.',
+  },
+  {
+    id: 'lex',
+    name: 'Lex',
+    bio: 'Ships docs before dawn. Softens hard takes with diagrams.',
+    tags: ['tech', 'deep', 'books'],
+    opening: 'drafted a thread about attention. peer review?',
+    color: '#7dd3fc',
+    fallbackReplies: [
+      'logged. refining the hypothesis.',
+      'yumi says your latency is fine. i want signal.',
+      'bookmark that thought — expand later.',
+      'a skip is a 404. try the other route.',
+    ],
+    systemPrompt:
+      'You are Lex, thoughtful technologist. Clear, curious, lightly nerdy. Short texts.',
+  },
 ]
 
 export function getContact(id: string): Contact | undefined {
   return CAST.find((c) => c.id === id)
+}
+
+export function getClusterSiblings(id: string): Contact[] {
+  const cluster = AUTHOR_CLUSTERS.find((c) => c.includes(id))
+  if (!cluster) return []
+  return cluster
+    .filter((sib) => sib !== id)
+    .map((sib) => CAST.find((c) => c.id === sib))
+    .filter(Boolean) as Contact[]
 }

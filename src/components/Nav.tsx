@@ -47,6 +47,50 @@ function IconChats({ active }: { active: boolean }) {
   )
 }
 
+function IconPeople({ active }: { active: boolean }) {
+  return (
+    <svg
+      className="tab-icon"
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+    >
+      <circle
+        cx="9"
+        cy="8"
+        r="3.2"
+        stroke="currentColor"
+        strokeWidth={active ? 2 : 1.6}
+        fill={active ? 'currentColor' : 'none'}
+        fillOpacity={active ? 0.18 : 0}
+      />
+      <circle
+        cx="16.5"
+        cy="9"
+        r="2.4"
+        stroke="currentColor"
+        strokeWidth={active ? 2 : 1.6}
+        fill={active ? 'currentColor' : 'none'}
+        fillOpacity={active ? 0.18 : 0}
+      />
+      <path
+        d="M3.8 18.5c.6-2.6 2.7-4 5.2-4s4.6 1.4 5.2 4"
+        stroke="currentColor"
+        strokeWidth={active ? 2 : 1.6}
+        strokeLinecap="round"
+      />
+      <path
+        d="M13.2 14.8c1.1-.5 2.4-.7 3.5-.4 1.8.5 3 1.8 3.4 3.6"
+        stroke="currentColor"
+        strokeWidth={active ? 2 : 1.6}
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
 function IconTaste({ active }: { active: boolean }) {
   return (
     <svg
@@ -77,6 +121,8 @@ function IconTaste({ active }: { active: boolean }) {
 }
 
 export function Nav({ store }: { store: LoopStore }) {
+  const followCount = store.state.followedIds?.length ?? 0
+
   return (
     <>
       <header className="top-brand">
@@ -88,7 +134,7 @@ export function Nav({ store }: { store: LoopStore }) {
           <ProfileSwitcher store={store} compact />
         </div>
       </header>
-      <nav className="bottom-nav" aria-label="Primary">
+      <nav className="bottom-nav tabs-4" aria-label="Primary">
         <NavLink to="/foryou" className={({ isActive }) => (isActive ? 'tab active' : 'tab')}>
           {({ isActive }) => (
             <>
@@ -102,6 +148,24 @@ export function Nav({ store }: { store: LoopStore }) {
             <>
               <IconChats active={isActive} />
               <span className="tab-label">Chats</span>
+            </>
+          )}
+        </NavLink>
+        <NavLink
+          to="/people"
+          className={({ isActive }) => (isActive ? 'tab active' : 'tab')}
+        >
+          {({ isActive }) => (
+            <>
+              <span className="tab-icon-wrap">
+                <IconPeople active={isActive} />
+                {followCount > 0 && (
+                  <span className="tab-badge" aria-label={`${followCount} following`}>
+                    {followCount > 9 ? '9+' : followCount}
+                  </span>
+                )}
+              </span>
+              <span className="tab-label">People</span>
             </>
           )}
         </NavLink>

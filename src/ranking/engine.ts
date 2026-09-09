@@ -136,12 +136,23 @@ export function combinedScore(preds: SignalPreds): {
   }
 }
 
+export interface RankSocial {
+  followedIds?: string[]
+  mutedIds?: string[]
+}
+
 export function scoreContact(
   contact: Contact,
   taste: TasteState,
+  social: RankSocial = {},
 ): ScoredCandidate {
+  const followed = social.followedIds?.includes(contact.id) ?? false
+  const muted = social.mutedIds?.includes(contact.id) ?? false
+
   const tf = tagFit(contact, taste)
-  const af = authorFit(contact, taste)
+  // Following boosts via author affinity; mute soft-penalizes author fit
+  const af =
+    authorFit(contact, taste) + (followed ? 0.55 : 0) + (muted ? -0.85 : 0)
   const boredom = boredomPenalty(contact, taste)
   const fatigue = fatiguePenalty(taste)
   const fit = tf + af + boredom + fatigue
@@ -164,6 +175,14 @@ export function scoreContact(
   })
 
   const preds = mapLoopProbsToSignals(p)
+  // Existing X paths: follow_author boost / mute_author penalty
+  if (followed) {
+    preds.follow_author = Math.max(preds.follow_author ?? 0, 0.9)
+  }
+  if (muted) {
+    preds.mute_author = Math.max(preds.mute_author ?? 0, 1)
+    preds.not_interested = Math.max(preds.not_interested ?? 0, 0.35)
+  }
   const { score, ig, x } = combinedScore(preds)
 
   return {
@@ -187,8 +206,9 @@ export function rankContacts(
   contacts: Contact[],
   taste: TasteState,
   rng: () => number = Math.random,
+  social: RankSocial = {},
 ): ScoredCandidate[] {
-  const scored = contacts.map((c) => scoreContact(c, taste))
+  const scored = contacts.map((c) => scoreContact(c, taste, social))
   scored.sort((a, b) => b.score - a.score)
 
   if (scored.length > 1 && rng() < EXPLORE_EPSILON) {

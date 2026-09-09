@@ -9,9 +9,10 @@ Loop ports a public-style ranking equation into conversations, blending Instagra
 - **Onboarding** -- pick two or more tags (or start with Funny + looks)
 - **For You** -- contacts scored like clips; skip, like, share, or open
 - **Chats** -- a ranked inbox that reorders every 5 actions
+- **People** -- cast directory with search, tag filters, Follow / Mute, and person profiles
 - **Taste** -- live tag/author affinities, boredom window, and **local profiles**
 - **Why this** -- sheet from For You cards: IG vs X blend (55/45) breakdown
-- **Bottom tabs** -- For You / Chats / Taste (mobile-app shell)
+- **Bottom tabs** -- For You / Chats / People / Taste (mobile-app shell)
 
 Contacts reply in character via the xAI API (grok-4.5) when the chat API key env var is set, and fall back to written lines when it is not.
 
@@ -49,7 +50,7 @@ update  = +0.15 x strength on tags, +0.08 x strength on author
 rerank  = every 5 consumed items
 ```
 
-Same author clusters share affinity (Jordan + Rafi, Nico + Asha, Priya + Tess, Elena + Yumi).
+Same author clusters share affinity (Mira + Kai, Jordan + Rafi, Nico + Asha, Priya + Tess, Elena + Yumi, Sam + Rio). Following boosts ranking via author affinity and the X `follow_author` signal; muted people are hidden from For You.
 
 ## Run locally
 
@@ -66,4 +67,5 @@ Import the GitHub repo on Vercel with Vite defaults. Connect Git so main redeplo
 2. Like Mira
 3. Open a chat and reply
 4. Skip cards and watch re-rank
-5. Create a second local profile on Taste and switch back
+5. Open People, follow someone, and check their profile
+6. Create a second local profile on Taste and switch back

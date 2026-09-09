@@ -75,10 +75,12 @@ export const RERANK_EVERY = 5
 
 /** Same-author affinity clusters */
 export const AUTHOR_CLUSTERS: string[][] = [
+  ['mira', 'kai'],
   ['jordan', 'rafi'],
   ['nico', 'asha'],
   ['priya', 'tess'],
   ['elena', 'yumi'],
+  ['sam', 'rio'],
 ]
 
 export interface TasteState {

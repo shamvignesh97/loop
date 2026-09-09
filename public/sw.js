@@ -1,5 +1,5 @@
 /* Loop app-shell service worker — caches shell for offline open */
-const CACHE = 'loop-shell-v4'
+const CACHE = 'loop-shell-v5'
 
 function basePath() {
   try {

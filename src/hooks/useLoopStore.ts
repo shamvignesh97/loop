@@ -53,9 +53,17 @@ export function useLoopStore() {
     setActiveName(active.name)
   }, [])
 
+  const social = useMemo(
+    () => ({
+      followedIds: state.followedIds ?? [],
+      mutedIds: state.mutedIds ?? [],
+    }),
+    [state.followedIds, state.mutedIds],
+  )
+
   const scored: ScoredCandidate[] = useMemo(
-    () => rankContacts(CAST, state.taste, () => 0.5),
-    [state.taste],
+    () => rankContacts(CAST, state.taste, () => 0.5, social),
+    [state.taste, social],
   )
 
   const scoredMap = useMemo(() => {
@@ -109,8 +117,12 @@ export function useLoopStore() {
       }
 
       let rankedIds = prev.rankedIds
+      const socialNow = {
+        followedIds: prev.followedIds ?? [],
+        mutedIds: prev.mutedIds ?? [],
+      }
       if (shouldRerank(taste)) {
-        const list = rankContacts(CAST, taste)
+        const list = rankContacts(CAST, taste, Math.random, socialNow)
         rankedIds = list.map((s) => s.id)
         taste = markReranked(taste)
       }
@@ -157,8 +169,14 @@ export function useLoopStore() {
       }
       let taste = applyAction(prev.taste, contact, 'dwell')
       let rankedIds = prev.rankedIds
+      const socialNow = {
+        followedIds: prev.followedIds ?? [],
+        mutedIds: prev.mutedIds ?? [],
+      }
       if (shouldRerank(taste)) {
-        rankedIds = rankContacts(CAST, taste).map((s) => s.id)
+        rankedIds = rankContacts(CAST, taste, Math.random, socialNow).map(
+          (s) => s.id,
+        )
         taste = markReranked(taste)
       }
       return { ...prev, threads, taste, rankedIds, lastWhyId: contactId }
@@ -188,8 +206,14 @@ export function useLoopStore() {
         threads[contactId] = existing
         let taste = applyAction(prev.taste, contact, 'reply')
         let rankedIds = prev.rankedIds
+        const socialNow = {
+          followedIds: prev.followedIds ?? [],
+          mutedIds: prev.mutedIds ?? [],
+        }
         if (shouldRerank(taste)) {
-          rankedIds = rankContacts(CAST, taste).map((s) => s.id)
+          rankedIds = rankContacts(CAST, taste, Math.random, socialNow).map(
+            (s) => s.id,
+          )
           taste = markReranked(taste)
         }
         return { ...prev, threads, taste, rankedIds, lastWhyId: contactId }
@@ -250,6 +274,100 @@ export function useLoopStore() {
     [profiles.length, state, refreshProfiles],
   )
 
+  const toggleFollow = useCallback((contactId: string) => {
+    const contact = getContact(contactId)
+    if (!contact) return
+    setState((prev) => {
+      const followedIds = [...(prev.followedIds ?? [])]
+      const mutedIds = (prev.mutedIds ?? []).filter((id) => id !== contactId)
+      const idx = followedIds.indexOf(contactId)
+      let taste = prev.taste
+      if (idx >= 0) {
+        followedIds.splice(idx, 1)
+      } else {
+        followedIds.push(contactId)
+        // Boost author affinity (follow_author path)
+        taste = applyAction(prev.taste, contact, 'like')
+        const authors = { ...taste.authors }
+        authors[contactId] = Math.min(
+          2.5,
+          (authors[contactId] ?? 0) + 0.35,
+        )
+        taste = { ...taste, authors }
+      }
+      const socialNow = { followedIds, mutedIds }
+      let rankedIds = prev.rankedIds
+      if (shouldRerank(taste) || idx < 0) {
+        rankedIds = rankContacts(CAST, taste, Math.random, socialNow).map(
+          (s) => s.id,
+        )
+        taste = markReranked(taste)
+      }
+      return { ...prev, followedIds, mutedIds, taste, rankedIds }
+    })
+  }, [])
+
+  const toggleMute = useCallback((contactId: string) => {
+    const contact = getContact(contactId)
+    if (!contact) return
+    setState((prev) => {
+      const mutedIds = [...(prev.mutedIds ?? [])]
+      let followedIds = [...(prev.followedIds ?? [])]
+      const idx = mutedIds.indexOf(contactId)
+      let taste = prev.taste
+      if (idx >= 0) {
+        mutedIds.splice(idx, 1)
+      } else {
+        mutedIds.push(contactId)
+        followedIds = followedIds.filter((id) => id !== contactId)
+        taste = applyAction(prev.taste, contact, 'skip')
+        const authors = { ...taste.authors }
+        authors[contactId] = Math.max(
+          -1.5,
+          (authors[contactId] ?? 0) - 0.6,
+        )
+        taste = { ...taste, authors }
+      }
+      const socialNow = { followedIds, mutedIds }
+      const rankedIds = rankContacts(CAST, taste, Math.random, socialNow).map(
+        (s) => s.id,
+      )
+      taste = markReranked(taste)
+      return { ...prev, mutedIds, followedIds, taste, rankedIds }
+    })
+  }, [])
+
+  const notInterested = useCallback((contactId: string) => {
+    const contact = getContact(contactId)
+    if (!contact) return
+    setState((prev) => {
+      const skippedIds = prev.skippedIds.includes(contactId)
+        ? prev.skippedIds
+        : [...prev.skippedIds, contactId]
+      const mutedIds = prev.mutedIds?.includes(contactId)
+        ? prev.mutedIds
+        : [...(prev.mutedIds ?? []), contactId]
+      const followedIds = (prev.followedIds ?? []).filter(
+        (id) => id !== contactId,
+      )
+      let taste = applyAction(prev.taste, contact, 'skip')
+      const socialNow = { followedIds, mutedIds }
+      const rankedIds = rankContacts(CAST, taste, Math.random, socialNow).map(
+        (s) => s.id,
+      )
+      taste = markReranked(taste)
+      return {
+        ...prev,
+        skippedIds,
+        mutedIds,
+        followedIds,
+        taste,
+        rankedIds,
+        lastWhyId: contactId,
+      }
+    })
+  }, [])
+
   const getScore = useCallback(
     (id: string) => scoredMap.get(id),
     [scoredMap],
@@ -257,10 +375,10 @@ export function useLoopStore() {
 
   useEffect(() => {
     if (state.onboarded && state.rankedIds.length === 0) {
-      const list = rankContacts(CAST, state.taste)
+      const list = rankContacts(CAST, state.taste, Math.random, social)
       setState((prev) => ({ ...prev, rankedIds: list.map((s) => s.id) }))
     }
-  }, [state.onboarded, state.rankedIds.length, state.taste])
+  }, [state.onboarded, state.rankedIds.length, state.taste, social])
 
   return {
     state,
@@ -272,6 +390,9 @@ export function useLoopStore() {
     sendMessage,
     resetAll,
     getScore,
+    toggleFollow,
+    toggleMute,
+    notInterested,
     profiles,
     activeProfileId,
     activeProfileName: activeName,
