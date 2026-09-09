@@ -29,3 +29,9 @@ dist-ssr
 !.env.example
 .vercel
 .env*
+
+firebase-web-config.json
+firebase-setup-notes.txt
+
+vercel-login.txt
+vercel-login-raw.txt

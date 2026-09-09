@@ -426,6 +426,41 @@ export function useLoopStore(authUid: string, displayName?: string) {
     })
   }, [])
 
+  /** Strong positive ranking: like + follow-weight boost. */
+  const moreLikeThis = useCallback((contactId: string) => {
+    const contact = getContact(contactId)
+    if (!contact) return
+    setState((prev) => {
+      let taste = applyAction(prev.taste, contact, 'like')
+      taste = applyAction(taste, contact, 'like')
+      const likedIds = prev.likedIds.includes(contactId)
+        ? prev.likedIds
+        : [...prev.likedIds, contactId]
+      const skippedIds = prev.skippedIds.filter((id) => id !== contactId)
+      const mutedIds = (prev.mutedIds ?? []).filter((id) => id !== contactId)
+      const followedIds = [...(prev.followedIds ?? [])]
+      if (!followedIds.includes(contactId)) followedIds.push(contactId)
+      const authors = { ...taste.authors }
+      authors[contactId] = Math.min(2.5, (authors[contactId] ?? 0) + 0.55)
+      taste = { ...taste, authors }
+      const socialNow = { followedIds, mutedIds }
+      const rankedIds = rankContacts(CAST, taste, Math.random, socialNow).map(
+        (s) => s.id,
+      )
+      taste = markReranked(taste)
+      return {
+        ...prev,
+        taste,
+        likedIds,
+        skippedIds,
+        mutedIds,
+        followedIds,
+        rankedIds,
+        lastWhyId: contactId,
+      }
+    })
+  }, [])
+
   const getScore = useCallback(
     (id: string) => scoredMap.get(id),
     [scoredMap],
@@ -451,6 +486,7 @@ export function useLoopStore(authUid: string, displayName?: string) {
     toggleFollow,
     toggleMute,
     notInterested,
+    moreLikeThis,
     profiles,
     activeProfileId,
     activeProfileName: activeName,

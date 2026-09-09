@@ -1,8 +1,12 @@
-import { useNavigate } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { ContactCard } from '../components/ContactCard'
 import { WhyThis } from '../components/WhyThis'
 import type { LoopStore } from '../hooks/useLoopStore'
-import { useState } from 'react'
+import {
+  isHighRelevance,
+  rankingReasonChip,
+} from '../ranking/reasons'
 
 export function ForYou({ store }: { store: LoopStore }) {
   const nav = useNavigate()
@@ -13,6 +17,11 @@ export function ForYou({ store }: { store: LoopStore }) {
     ({ contact }) =>
       !store.state.skippedIds.includes(contact.id) &&
       !muted.includes(contact.id),
+  )
+
+  const feedScores = useMemo(
+    () => feed.map(({ scored }) => scored.score),
+    [feed],
   )
 
   const whyScored = whyId ? store.getScore(whyId) ?? null : null
@@ -30,39 +39,61 @@ export function ForYou({ store }: { store: LoopStore }) {
       </header>
 
       <div className="card-list">
-        {feed.map(({ contact, scored }) => (
-          <ContactCard
-            key={contact.id}
-            contact={contact}
-            scored={scored}
-            onSkip={() => store.consume(contact.id, 'skip')}
-            onLike={() => store.consume(contact.id, 'like')}
-            onShare={() => {
-              const invite = `${window.location.origin}${import.meta.env.BASE_URL}foryou`
-              const payload = {
-                title: `Loop · ${contact.name}`,
-                text: contact.opening,
-                url: invite,
-              }
-              if (navigator.share) {
-                store.consume(contact.id, 'share')
-                void navigator.share(payload).catch(() => {})
-              } else if (navigator.clipboard?.writeText) {
-                store.consume(contact.id, 'share_copy')
-                void navigator.clipboard.writeText(invite).catch(() => {})
-              } else {
-                store.consume(contact.id, 'share')
-              }
-            }}
-            onOpen={() => {
-              store.openChat(contact.id)
-              nav(`/chats/${contact.id}`)
-            }}
-            onWhy={() => setWhyId(contact.id)}
-          />
-        ))}
+        {feed.map(({ contact, scored }) => {
+          const reason = rankingReasonChip(scored, store.state.taste, {
+            followedIds: store.state.followedIds,
+            selectedTags: store.state.selectedTags,
+          })
+          return (
+            <ContactCard
+              key={contact.id}
+              contact={contact}
+              scored={scored}
+              reasonChip={reason}
+              highRelevance={isHighRelevance(scored, feedScores)}
+              onMoreLikeThis={() => store.moreLikeThis(contact.id)}
+              onLessInFeed={() => store.notInterested(contact.id)}
+              onShare={() => {
+                const invite = `${window.location.origin}${import.meta.env.BASE_URL}foryou`
+                const payload = {
+                  title: `Loop · ${contact.name}`,
+                  text: contact.opening,
+                  url: invite,
+                }
+                if (navigator.share) {
+                  store.consume(contact.id, 'share')
+                  void navigator.share(payload).catch(() => {})
+                } else if (navigator.clipboard?.writeText) {
+                  store.consume(contact.id, 'share_copy')
+                  void navigator.clipboard.writeText(invite).catch(() => {})
+                } else {
+                  store.consume(contact.id, 'share')
+                }
+              }}
+              onOpen={() => {
+                store.openChat(contact.id)
+                nav(`/chats/${contact.id}`, {
+                  state: {
+                    fromForYou: true,
+                    elevateReason: reason,
+                  },
+                })
+              }}
+              onWhy={() => setWhyId(contact.id)}
+            />
+          )
+        })}
         {feed.length === 0 && (
-          <p className="empty">Everyone skipped. Reset taste to refill.</p>
+          <div className="empty-state">
+            <p className="empty-title">Feed cleared</p>
+            <p className="muted">
+              Everyone was skipped or muted. Reset taste to refill, or browse
+              People.
+            </p>
+            <Link to="/people" className="primary empty-cta">
+              Browse People
+            </Link>
+          </div>
         )}
       </div>
 

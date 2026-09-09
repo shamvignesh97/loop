@@ -167,7 +167,24 @@ export function People({ store }: { store: LoopStore }) {
           )
         })}
         {rows.length === 0 && (
-          <p className="empty">No people match that filter.</p>
+          <div className="empty-state">
+            <p className="empty-title">No people match</p>
+            <p className="muted">
+              Clear filters or jump to For You to discover ranked contacts.
+            </p>
+            <button
+              type="button"
+              className="primary empty-cta"
+              onClick={() => {
+                setQuery('')
+                setTag(null)
+                setFollowingOnly(false)
+                nav('/foryou')
+              }}
+            >
+              Open For You
+            </button>
+          </div>
         )}
       </div>
     </div>

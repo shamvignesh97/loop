@@ -1,17 +1,48 @@
-import { useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { fetchReply } from '../api/chat'
 import { Avatar } from '../components/Avatar'
 import { WhyThis } from '../components/WhyThis'
 import { getContact } from '../data/cast'
 import type { LoopStore } from '../hooks/useLoopStore'
 
+type ThreadNavState = {
+  fromForYou?: boolean
+  elevateReason?: string
+}
+
 export function ChatThread({ store }: { store: LoopStore }) {
   const { id = '' } = useParams()
+  const location = useLocation()
+  const navState = (location.state ?? {}) as ThreadNavState
   const contact = getContact(id)
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [why, setWhy] = useState(false)
+  const [contextChip, setContextChip] = useState<string | null>(null)
+  const [chipFading, setChipFading] = useState(false)
+
+  useEffect(() => {
+    if (!navState.fromForYou) return
+    const label =
+      navState.elevateReason?.trim() ||
+      'Elevated from For You'
+    const prefix =
+      navState.elevateReason?.trim() &&
+      !navState.elevateReason.startsWith('Elevated')
+        ? `Elevated from For You · ${navState.elevateReason}`
+        : label
+    setContextChip(prefix)
+    setChipFading(false)
+    const fade = window.setTimeout(() => setChipFading(true), 2400)
+    const hide = window.setTimeout(() => setContextChip(null), 3000)
+    return () => {
+      window.clearTimeout(fade)
+      window.clearTimeout(hide)
+    }
+    // Only on mount / id change with this nav state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
 
   if (!contact) {
     return (
@@ -54,6 +85,23 @@ export function ChatThread({ store }: { store: LoopStore }) {
           Why
         </button>
       </header>
+
+      {contextChip && (
+        <div
+          className={`thread-context-chip${chipFading ? ' fading' : ''}`}
+          role="status"
+        >
+          <span>{contextChip}</span>
+          <button
+            type="button"
+            className="chip-dismiss"
+            aria-label="Dismiss"
+            onClick={() => setContextChip(null)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <div className="messages">
         {msgs.map((m) => (

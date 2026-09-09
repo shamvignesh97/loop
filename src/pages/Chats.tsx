@@ -44,10 +44,15 @@ export function Chats({ store }: { store: LoopStore }) {
           )
         })}
         {threads.length === 0 && (
-          <p className="empty">
-            No threads yet.{' '}
-            <Link to="/foryou">Open someone from For You</Link>.
-          </p>
+          <div className="empty-state">
+            <p className="empty-title">No chats yet</p>
+            <p className="muted">
+              Open someone from For You to start a ranked thread.
+            </p>
+            <Link to="/foryou" className="primary empty-cta">
+              Open For You
+            </Link>
+          </div>
         )}
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { AUTHOR_CLUSTERS } from '../ranking/types'
 import type { LoopStore } from '../hooks/useLoopStore'
 import { ALL_TAGS } from '../data/cast'
@@ -25,6 +26,18 @@ export function Taste({ store }: { store: LoopStore }) {
       </header>
 
       <ProfileSwitcher store={store} />
+
+      {taste.sessionActions === 0 && (
+        <div className="empty-state pane-empty">
+          <p className="empty-title">Taste is still cold</p>
+          <p className="muted">
+            Like, follow, or chat from For You to shape affinities.
+          </p>
+          <Link to="/foryou" className="primary empty-cta">
+            Shape from For You
+          </Link>
+        </div>
+      )}
 
       <section className="pane">
         <h3>Seed tags</h3>
