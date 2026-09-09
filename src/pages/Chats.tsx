@@ -33,9 +33,9 @@ export function Chats({ store }: { store: LoopStore }) {
                 }}
               >
                 <Avatar contact={contact} size={48} />
-                <div>
+                <div className="card-body">
                   <div className="card-top">
-                    <h3>{contact.name}</h3>
+                    <h3 className="inbox-name">{contact.name}</h3>
                   </div>
                   <p className="preview">{last?.text ?? contact.opening}</p>
                 </div>
