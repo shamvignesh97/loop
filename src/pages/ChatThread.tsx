@@ -1,11 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { fetchReply } from '../api/chat'
 import { Avatar } from '../components/Avatar'
 import { WhyThis } from '../components/WhyThis'
 import { getContact } from '../data/cast'
 import { startersForContact } from '../data/starters'
 import type { LoopStore } from '../hooks/useLoopStore'
+import { tasteOverlapTags } from '../ranking/reasons'
 
 const DISCLOSURE_KEY = 'loop-persona-disclosure-seen'
 
@@ -17,6 +18,7 @@ type ThreadNavState = {
 export function ChatThread({ store }: { store: LoopStore }) {
   const { id = '' } = useParams()
   const location = useLocation()
+  const nav = useNavigate()
   const navState = (location.state ?? {}) as ThreadNavState
   const contact = getContact(id)
   const [text, setText] = useState('')
@@ -64,7 +66,6 @@ export function ChatThread({ store }: { store: LoopStore }) {
   }
 
   const msgs = store.state.threads[id] ?? []
-  const scored = store.getScore(id) ?? null
   const hasUserMessage = msgs.some((m) => m.from === 'me')
   const isFresh = !hasUserMessage
   const starters = isFresh ? startersForContact(contact) : []
@@ -209,7 +210,21 @@ export function ChatThread({ store }: { store: LoopStore }) {
         </button>
       </form>
 
-      {why && <WhyThis scored={scored} onClose={() => setWhy(false)} />}
+      {why && (
+        <WhyThis
+          contactId={id}
+          overlapTags={tasteOverlapTags(
+            contact,
+            store.state.taste,
+            store.state.selectedTags,
+          )}
+          onClose={() => setWhy(false)}
+          onGoTaste={() => {
+            setWhy(false)
+            nav('/taste')
+          }}
+        />
+      )}
     </div>
   )
 }

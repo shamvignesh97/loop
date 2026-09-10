@@ -7,7 +7,9 @@ import {
   caughtUpCount,
   isHighRelevance,
   rankingReasonChip,
+  tasteOverlapTags,
 } from '../ranking/reasons'
+import { getContact } from '../data/cast'
 import type { PersistedLoop } from '../storage/taste'
 
 type UndoToast = {
@@ -38,7 +40,13 @@ export function ForYou({ store }: { store: LoopStore }) {
   const caughtN = useMemo(() => caughtUpCount(feedScores), [feedScores])
   const showDivider = feed.length > caughtN && caughtN > 0
 
-  const whyScored = whyId ? store.getScore(whyId) ?? null : null
+  const whyOverlap = whyId
+    ? tasteOverlapTags(
+        getContact(whyId) ?? { tags: [] },
+        store.state.taste,
+        store.state.selectedTags,
+      )
+    : []
 
   useEffect(() => {
     return () => {
@@ -127,6 +135,11 @@ export function ForYou({ store }: { store: LoopStore }) {
               <ContactCard
                 contact={contact}
                 scored={scored}
+                becauseTags={tasteOverlapTags(
+                  contact,
+                  store.state.taste,
+                  store.state.selectedTags,
+                )}
                 reasonChip={reason}
                 highRelevance={isHighRelevance(scored, feedScores)}
                 exploratory={exploratory}
@@ -211,7 +224,15 @@ export function ForYou({ store }: { store: LoopStore }) {
       )}
 
       {whyId && (
-        <WhyThis scored={whyScored} onClose={() => setWhyId(null)} />
+        <WhyThis
+          contactId={whyId}
+          overlapTags={whyOverlap}
+          onClose={() => setWhyId(null)}
+          onGoTaste={() => {
+            setWhyId(null)
+            nav('/taste')
+          }}
+        />
       )}
     </div>
   )

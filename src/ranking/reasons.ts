@@ -96,3 +96,65 @@ export function peopleOverlapBadge(
   }
   return 'New to Loop'
 }
+
+/** Tags the user and this persona share — for “Because you like” copy. No scores. */
+export function tasteOverlapTags(
+  contact: { tags: string[] },
+  taste: TasteState,
+  selectedTags: string[] = [],
+  limit = 3,
+): string[] {
+  const selected =
+    selectedTags.length > 0 ? selectedTags : Object.keys(taste.tags)
+  const ranked = contact.tags
+    .map((t) => ({
+      t,
+      v: (taste.tags[t] ?? 0) + (selected.includes(t) ? 0.35 : 0),
+    }))
+    .filter((x) => selected.includes(x.t) || x.v >= 0.2)
+    .sort((a, b) => b.v - a.v)
+  const tags = ranked.map((x) => x.t).slice(0, limit)
+  if (tags.length > 0) return tags
+  return contact.tags.filter((t) => selected.includes(t)).slice(0, limit)
+}
+
+/** Simple derived “Recently adjusted” lines from More/Less/Mute signals. */
+export function recentlyAdjustedLines(opts: {
+  taste: TasteState
+  likedIds: string[]
+  mutedIds: string[]
+}): string[] {
+  const { taste, likedIds, mutedIds } = opts
+  const lines: string[] = []
+  const seen = new Set<string>()
+
+  const push = (line: string) => {
+    if (seen.has(line) || lines.length >= 4) return
+    seen.add(line)
+    lines.push(line)
+  }
+
+  for (const id of [...likedIds].reverse().slice(0, 5)) {
+    const contact = getContact(id)
+    if (!contact) continue
+    const top = contact.tags
+      .map((t) => ({ t, v: taste.tags[t] ?? 0 }))
+      .sort((a, b) => b.v - a.v)[0]
+    if (top && top.v >= 0.25) push(`↑ More ${top.t} discussions`)
+  }
+
+  const negTags = Object.entries(taste.tags)
+    .filter(([, v]) => v < -0.05)
+    .sort((a, b) => a[1] - b[1])
+    .slice(0, 2)
+  for (const [tag] of negTags) {
+    push(`↓ Less ${tag} content`)
+  }
+
+  for (const id of [...mutedIds].reverse().slice(0, 2)) {
+    const contact = getContact(id)
+    if (contact) push(`Muted ${contact.name}`)
+  }
+
+  return lines
+}

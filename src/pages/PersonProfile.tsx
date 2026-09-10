@@ -3,6 +3,7 @@ import { getClusterSiblings, getContact } from '../data/cast'
 import { Avatar } from '../components/Avatar'
 import { WhyThis } from '../components/WhyThis'
 import type { LoopStore } from '../hooks/useLoopStore'
+import { tasteOverlapTags } from '../ranking/reasons'
 import { useState } from 'react'
 
 export function PersonProfile({ store }: { store: LoopStore }) {
@@ -168,7 +169,19 @@ export function PersonProfile({ store }: { store: LoopStore }) {
       </div>
 
       {whyOpen && (
-        <WhyThis scored={scored ?? null} onClose={() => setWhyOpen(false)} />
+        <WhyThis
+          contactId={contact.id}
+          overlapTags={tasteOverlapTags(
+            contact,
+            store.state.taste,
+            store.state.selectedTags,
+          )}
+          onClose={() => setWhyOpen(false)}
+          onGoTaste={() => {
+            setWhyOpen(false)
+            nav('/taste')
+          }}
+        />
       )}
     </div>
   )

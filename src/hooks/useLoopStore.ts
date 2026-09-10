@@ -494,6 +494,35 @@ export function useLoopStore(authUid: string, displayName?: string) {
     setState(normalizePersisted(structuredClone(snapshot)))
   }, [])
 
+  /** Edit onboarding interests from Taste snapshot. */
+  const updateSelectedTags = useCallback((tags: string[]) => {
+    setState((prev) => {
+      const clipped = [...new Set(tags)].slice(0, 5)
+      if (clipped.length < 1) return prev
+      const tasteTags = { ...prev.taste.tags }
+      for (const t of clipped) {
+        if ((tasteTags[t] ?? 0) < 0.5) {
+          tasteTags[t] = Math.max(tasteTags[t] ?? 0, 0.6)
+        }
+      }
+      for (const t of prev.selectedTags) {
+        if (!clipped.includes(t) && (tasteTags[t] ?? 0) > 0) {
+          tasteTags[t] = Math.max(0, (tasteTags[t] ?? 0) - 0.25)
+        }
+      }
+      let taste = { ...prev.taste, tags: tasteTags }
+      const socialNow = {
+        followedIds: prev.followedIds ?? [],
+        mutedIds: prev.mutedIds ?? [],
+      }
+      const rankedIds = rankContacts(CAST, taste, Math.random, socialNow).map(
+        (s) => s.id,
+      )
+      taste = markReranked(taste)
+      return { ...prev, selectedTags: clipped, taste, rankedIds }
+    })
+  }, [])
+
   const getScore = useCallback(
     (id: string) => scoredMap.get(id),
     [scoredMap],
@@ -522,6 +551,7 @@ export function useLoopStore(authUid: string, displayName?: string) {
     moreLikeThis,
     lessLikeThis,
     restoreState,
+    updateSelectedTags,
     profiles,
     activeProfileId,
     activeProfileName: activeName,

@@ -1,9 +1,14 @@
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AUTHOR_CLUSTERS } from '../ranking/types'
 import type { LoopStore } from '../hooks/useLoopStore'
 import { ALL_TAGS, getContact } from '../data/cast'
 import { ProfileSwitcher } from '../components/ProfileSwitcher'
 import { tasteStorageKey } from '../storage/profiles'
+import { recentlyAdjustedLines } from '../ranking/reasons'
+
+const MIN_TAGS = 3
+const MAX_TAGS = 5
 
 export function Taste({ store }: { store: LoopStore }) {
   const { taste, selectedTags, likedIds, skippedIds, mutedIds } = store.state
@@ -11,6 +16,50 @@ export function Taste({ store }: { store: LoopStore }) {
   const tagEntries = Object.entries(taste.tags).sort((a, b) => b[1] - a[1])
   const authorEntries = Object.entries(taste.authors).sort((a, b) => b[1] - a[1])
   const keyHint = tasteStorageKey(store.activeProfileId)
+  const [editing, setEditing] = useState(false)
+  const [draftTags, setDraftTags] = useState<string[]>(selectedTags)
+
+  const interestChips = useMemo(() => {
+    const fromSelected = selectedTags
+    const boosted = Object.entries(taste.tags)
+      .filter(([t, v]) => v >= 0.45 && !fromSelected.includes(t))
+      .sort((a, b) => b[1] - a[1])
+      .map(([t]) => t)
+      .slice(0, 4)
+    return [...fromSelected, ...boosted]
+  }, [selectedTags, taste.tags])
+
+  const adjusted = useMemo(
+    () =>
+      recentlyAdjustedLines({
+        taste,
+        likedIds,
+        mutedIds: muted,
+      }),
+    [taste, likedIds, muted],
+  )
+
+  const startEdit = () => {
+    setDraftTags(selectedTags)
+    setEditing(true)
+  }
+
+  const toggleDraft = (tag: string) => {
+    setDraftTags((prev) => {
+      if (prev.includes(tag)) {
+        if (prev.length <= MIN_TAGS) return prev
+        return prev.filter((t) => t !== tag)
+      }
+      if (prev.length >= MAX_TAGS) return prev
+      return [...prev, tag]
+    })
+  }
+
+  const saveInterests = () => {
+    if (draftTags.length < MIN_TAGS) return
+    store.updateSelectedTags(draftTags)
+    setEditing(false)
+  }
 
   return (
     <div className="page taste">
@@ -27,6 +76,78 @@ export function Taste({ store }: { store: LoopStore }) {
       </header>
 
       <ProfileSwitcher store={store} />
+
+      <section className="pane taste-snapshot" aria-label="Your Loop taste">
+        <h3>Your Loop taste</h3>
+        <p className="muted snapshot-label">You enjoy</p>
+        <div className="tag-row">
+          {interestChips.length === 0 && (
+            <span className="muted">Pick interests to calibrate Loop</span>
+          )}
+          {interestChips.map((t) => (
+            <span key={t} className="tag on">
+              {t}
+            </span>
+          ))}
+        </div>
+
+        {adjusted.length > 0 && (
+          <>
+            <p className="muted snapshot-label" style={{ marginTop: 14 }}>
+              Recently adjusted
+            </p>
+            <ul className="recent-adjusted">
+              {adjusted.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {!editing ? (
+          <button type="button" className="ghost snapshot-edit" onClick={startEdit}>
+            Edit interests
+          </button>
+        ) : (
+          <div className="snapshot-editor">
+            <p className="muted">
+              Pick {MIN_TAGS}–{MAX_TAGS} tags ({draftTags.length}/{MAX_TAGS})
+            </p>
+            <div className="tag-picker">
+              {ALL_TAGS.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  className={draftTags.includes(tag) ? 'chip on' : 'chip'}
+                  onClick={() => toggleDraft(tag)}
+                  disabled={
+                    !draftTags.includes(tag) && draftTags.length >= MAX_TAGS
+                  }
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+            <div className="snapshot-edit-actions">
+              <button
+                type="button"
+                className="primary"
+                disabled={draftTags.length < MIN_TAGS}
+                onClick={saveInterests}
+              >
+                Save interests
+              </button>
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => setEditing(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
 
       {taste.sessionActions === 0 && (
         <div className="empty-state pane-empty">

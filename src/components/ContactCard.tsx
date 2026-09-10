@@ -8,6 +8,7 @@ export function ContactCard({
   contact,
   scored,
   preview,
+  becauseTags,
   reasonChip,
   highRelevance,
   exploratory,
@@ -25,6 +26,7 @@ export function ContactCard({
   contact: Contact
   scored: ScoredCandidate
   preview?: string
+  becauseTags?: string[]
   reasonChip?: string
   highRelevance?: boolean
   exploratory?: boolean
@@ -196,7 +198,20 @@ export function ContactCard({
               </button>
             )}
           </div>
-          <p className="preview">{preview ?? contact.opening}</p>
+          <p className="preview preview-teaser">{preview ?? contact.opening}</p>
+          {becauseTags && becauseTags.length > 0 && (
+            <p className="because-line">
+              Because you like:{' '}
+              <span className="because-tags">
+                {becauseTags.map((t, i) => (
+                  <span key={t}>
+                    {i > 0 ? ' · ' : ''}
+                    <span className="because-tag">{t}</span>
+                  </span>
+                ))}
+              </span>
+            </p>
+          )}
           <div className="tag-row">
             {contact.tags.map((t) => (
               <span key={t} className="tag">
@@ -294,7 +309,7 @@ export function ContactCard({
         )}
         {onWhy && (
           <button type="button" className="act why" onClick={onWhy}>
-            Why
+            Why?
           </button>
         )}
       </div>

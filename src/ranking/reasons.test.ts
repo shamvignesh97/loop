@@ -6,6 +6,8 @@ import {
   isHighRelevance,
   peopleOverlapBadge,
   rankingReasonChip,
+  recentlyAdjustedLines,
+  tasteOverlapTags,
 } from './reasons'
 
 describe('rankingReasonChip', () => {
@@ -75,5 +77,33 @@ describe('peopleOverlapBadge', () => {
     const taste = createEmptyTaste([])
     const mira = CAST.find((c) => c.id === 'mira')!
     expect(peopleOverlapBadge(mira, taste, [])).toBe('New to Loop')
+  })
+})
+
+describe('tasteOverlapTags', () => {
+  it('returns overlapping interest tags without scores', () => {
+    const taste = createEmptyTaste(['funny', 'dance', 'witty'])
+    taste.tags.funny = 1.1
+    const mira = CAST.find((c) => c.id === 'mira')!
+    const tags = tasteOverlapTags(mira, taste, ['funny', 'dance', 'witty'])
+    expect(tags.length).toBeGreaterThan(0)
+    expect(tags.join(' ')).toMatch(/funny|dance|night/)
+    expect(tags.join(' ')).not.toMatch(/%|\d\.\d/)
+  })
+})
+
+describe('recentlyAdjustedLines', () => {
+  it('derives More/Less/Mute copy from feedback signals', () => {
+    const taste = createEmptyTaste(['funny'])
+    taste.tags.funny = 1.0
+    taste.tags.sports = -0.4
+    const lines = recentlyAdjustedLines({
+      taste,
+      likedIds: ['mira'],
+      mutedIds: ['jordan'],
+    })
+    expect(lines.some((l) => /More/.test(l))).toBe(true)
+    expect(lines.some((l) => /Less sports|Muted Jordan/.test(l))).toBe(true)
+    expect(lines.join(' ')).not.toMatch(/%/)
   })
 })

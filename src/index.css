@@ -1466,3 +1466,137 @@ button { cursor: pointer; }
   background: #fff;
   color: #000;
 }
+
+
+/* Taste snapshot header */
+.taste-snapshot h3 {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+}
+.snapshot-label {
+  margin: 8px 0 6px;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.recent-adjusted {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.recent-adjusted li {
+  font-size: 0.9rem;
+  color: #e4e4e7;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.snapshot-edit {
+  margin-top: 14px;
+}
+.snapshot-editor {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+.snapshot-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* For You: stronger 2-line preview teaser */
+.preview.preview-teaser {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #d4d4d8;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  margin: 6px 0 8px;
+}
+
+/* Because you like */
+.because-line {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.because-tags {
+  color: #e4e4e7;
+}
+.because-tag {
+  color: #f4f4f5;
+  font-weight: 500;
+}
+
+/* Why this chat bottom sheet */
+.why-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 12px;
+  padding-bottom: calc(76px + var(--safe-bottom));
+}
+.why-panel.why-sheet {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  width: min(420px, 100%);
+  max-height: min(70vh, 560px);
+  border-radius: 20px 20px 18px 18px;
+}
+.why-topic-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.why-topic-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  font-size: 0.92rem;
+}
+.why-check {
+  color: var(--like);
+  font-weight: 700;
+}
+.why-adjust-hint { margin-top: 12px; }
+.why-taste-cta {
+  width: 100%;
+  margin-top: 14px;
+  text-align: center;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (min-width: 840px) {
+  .why-sheet-backdrop {
+    align-items: center;
+    padding-bottom: 12px;
+  }
+  .why-panel.why-sheet {
+    border-radius: 18px;
+  }
+}
