@@ -1,9 +1,18 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { fetchReply } from '../api/chat'
 import { Avatar } from '../components/Avatar'
+import { MemoryHeaderChip } from '../components/chat/MemoryHeaderChip'
+import { MemorySheet } from '../components/chat/MemorySheet'
 import { WhyThis } from '../components/WhyThis'
 import { getContact } from '../data/cast'
+import { markCliffhangerRead } from '../data/cliffhangers'
+import {
+  cacheMemories,
+  memoriesFor,
+  readCachedMemoryCount,
+} from '../data/memories'
+import { consumeDraftStarter } from '../data/plotTwists'
 import { startersForContact } from '../data/starters'
 import type { LoopStore } from '../hooks/useLoopStore'
 import { tasteOverlapTags } from '../ranking/reasons'
@@ -13,6 +22,8 @@ const DISCLOSURE_KEY = 'loop-persona-disclosure-seen'
 type ThreadNavState = {
   fromForYou?: boolean
   elevateReason?: string
+  autoSend?: string
+  fromPlotTwist?: boolean
 }
 
 export function ChatThread({ store }: { store: LoopStore }) {
@@ -24,6 +35,7 @@ export function ChatThread({ store }: { store: LoopStore }) {
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [why, setWhy] = useState(false)
+  const [memoryOpen, setMemoryOpen] = useState(false)
   const [contextChip, setContextChip] = useState<string | null>(null)
   const [chipFading, setChipFading] = useState(false)
   const [showDisclosure, setShowDisclosure] = useState(() => {
@@ -33,6 +45,19 @@ export function ChatThread({ store }: { store: LoopStore }) {
       return true
     }
   })
+  const composerRef = useRef<HTMLInputElement>(null)
+  const autoSentRef = useRef<string | null>(null)
+  const busyRef = useRef(false)
+
+  const memories = contact ? memoriesFor(contact.id) : []
+  const cachedCount = contact ? readCachedMemoryCount(contact.id) : null
+  const memoryCount = memories.length || cachedCount || 0
+
+  useEffect(() => {
+    if (!contact) return
+    markCliffhangerRead(contact.id)
+    cacheMemories(contact.id, memoriesFor(contact.id))
+  }, [contact])
 
   useEffect(() => {
     if (!navState.fromForYou) return
@@ -55,6 +80,66 @@ export function ChatThread({ store }: { store: LoopStore }) {
     // Only on mount / id change with this nav state
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+
+  useEffect(() => {
+    busyRef.current = busy
+  }, [busy])
+
+  // Auto-send plot-twist starter once per navigation payload / draft
+  useEffect(() => {
+    if (!contact || !id) return
+    const fromState = navState.autoSend?.trim() || null
+    const lockKey = `loop_autosend_lock_${id}`
+    let locked = false
+    try {
+      locked = sessionStorage.getItem(lockKey) === '1'
+    } catch {
+      locked = false
+    }
+    if (locked && !fromState) {
+      // Draft may still exist after StrictMode remount — consume without sending again
+      consumeDraftStarter(id)
+      return
+    }
+
+    const fromDraft = fromState ? null : consumeDraftStarter(id)
+    const payload = fromState || fromDraft
+    if (!payload) return
+    if (autoSentRef.current === payload) return
+    autoSentRef.current = payload
+
+    try {
+      sessionStorage.setItem(lockKey, '1')
+    } catch {
+      /* ignore */
+    }
+    if (fromState) {
+      // Also clear draft twin so remounts don't double-fire
+      consumeDraftStarter(id)
+      nav(location.pathname, { replace: true, state: {} })
+    }
+
+    void (async () => {
+      if (busyRef.current) return
+      setBusy(true)
+      setText('')
+      try {
+        const msgs = store.state.threads[id] ?? []
+        const reply = await fetchReply(contact, msgs, payload)
+        store.sendMessage(id, payload, reply)
+      } finally {
+        setBusy(false)
+        window.setTimeout(() => {
+          try {
+            sessionStorage.removeItem(lockKey)
+          } catch {
+            /* ignore */
+          }
+        }, 1500)
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, contact])
 
   if (!contact) {
     return (
@@ -96,6 +181,11 @@ export function ChatThread({ store }: { store: LoopStore }) {
     setShowDisclosure(false)
   }
 
+  function closeMemorySheet() {
+    setMemoryOpen(false)
+    window.setTimeout(() => composerRef.current?.focus(), 0)
+  }
+
   return (
     <div className="page thread">
       <header className="thread-head">
@@ -108,7 +198,13 @@ export function ChatThread({ store }: { store: LoopStore }) {
             <h2>{contact.name}</h2>
             <span className="persona-badge">Persona</span>
           </div>
-          <p className="muted">{contact.bio}</p>
+          <div className="thread-sub-row">
+            <MemoryHeaderChip
+              count={memoryCount}
+              onOpen={() => setMemoryOpen(true)}
+            />
+            <p className="muted thread-bio-snip">{contact.bio}</p>
+          </div>
         </div>
         <button type="button" className="act why" onClick={() => setWhy(true)}>
           Why
@@ -200,6 +296,7 @@ export function ChatThread({ store }: { store: LoopStore }) {
 
       <form className="composer" onSubmit={onSubmit}>
         <input
+          ref={composerRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={`Reply to ${contact.name}…`}
@@ -223,6 +320,14 @@ export function ChatThread({ store }: { store: LoopStore }) {
             setWhy(false)
             nav('/taste')
           }}
+        />
+      )}
+
+      {memoryOpen && (
+        <MemorySheet
+          personaName={contact.name}
+          memories={memories}
+          onClose={closeMemorySheet}
         />
       )}
     </div>

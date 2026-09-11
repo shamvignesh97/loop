@@ -1600,3 +1600,159 @@ button { cursor: pointer; }
     border-radius: 18px;
   }
 }
+
+/* —— Must-ship 3: Cliffhanger / Plot Twist / Memory —— */
+
+.cliffhanger-teaser {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 8px;
+  min-width: 0;
+}
+.cliffhanger-teaser .cliffhanger-text {
+  flex: 1;
+  min-width: 0;
+  font-style: italic;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #e4e4e7;
+}
+.cliffhanger-teaser.is-cliffhanger .cliffhanger-text {
+  color: #fafafa;
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.18);
+}
+.cliffhanger-teaser.unread .cliffhanger-text {
+  color: #fff;
+  font-weight: 500;
+}
+.cliffhanger-pulse {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55);
+  animation: cliff-pulse 1.6s ease-out infinite;
+}
+@keyframes cliff-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55); opacity: 1; }
+  70% { box-shadow: 0 0 0 8px rgba(255, 255, 255, 0); opacity: 0.85; }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); opacity: 1; }
+}
+
+.plot-twist-starters {
+  padding: 0 14px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+.plot-twist-label {
+  margin: 10px 0 8px;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.plot-twist-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.plot-twist-row::-webkit-scrollbar { display: none; }
+.plot-twist-chip {
+  flex-shrink: 0;
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f4f4f5;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.84rem;
+  font-weight: 560;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+}
+.plot-twist-chip:hover,
+.plot-twist-chip:focus-visible {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.1);
+}
+.plot-twist-chip.sending,
+.plot-twist-chip:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.thread-sub-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 2px;
+}
+.thread-bio-snip {
+  margin: 0;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+}
+.memory-header-chip {
+  flex-shrink: 0;
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.07);
+  color: #f4f4f5;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 0.68rem;
+  font-weight: 560;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  cursor: pointer;
+  line-height: 1.35;
+}
+.memory-header-chip:hover,
+.memory-header-chip:focus-visible {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.memory-kv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.memory-kv-list li {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.92rem;
+}
+.memory-key {
+  color: #a1a1aa;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding-top: 2px;
+}
+.memory-fact {
+  color: #f4f4f5;
+  line-height: 1.35;
+}

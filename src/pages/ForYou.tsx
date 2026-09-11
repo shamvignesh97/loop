@@ -10,6 +10,11 @@ import {
   tasteOverlapTags,
 } from '../ranking/reasons'
 import { getContact } from '../data/cast'
+import {
+  cliffhangerFor,
+  isCliffhangerRead,
+  markCliffhangerRead,
+} from '../data/cliffhangers'
 import type { PersistedLoop } from '../storage/taste'
 
 type UndoToast = {
@@ -22,6 +27,7 @@ export function ForYou({ store }: { store: LoopStore }) {
   const [whyId, setWhyId] = useState<string | null>(null)
   const [muteToast, setMuteToast] = useState<string | null>(null)
   const [undoToast, setUndoToast] = useState<UndoToast | null>(null)
+  const [cliffTick, setCliffTick] = useState(0)
   const toastTimer = useRef<number | null>(null)
   const pendingSnap = useRef<PersistedLoop | null>(null)
 
@@ -135,6 +141,13 @@ export function ForYou({ store }: { store: LoopStore }) {
               <ContactCard
                 contact={contact}
                 scored={scored}
+                cliffhangerText={cliffhangerFor(contact.id)}
+                cliffhangerUnread={
+                  // cliffTick forces re-read after mark
+                  cliffTick >= 0 &&
+                  Boolean(cliffhangerFor(contact.id)) &&
+                  !isCliffhangerRead(contact.id)
+                }
                 becauseTags={tasteOverlapTags(
                   contact,
                   store.state.taste,
@@ -170,6 +183,8 @@ export function ForYou({ store }: { store: LoopStore }) {
                   }
                 }}
                 onOpen={() => {
+                  markCliffhangerRead(contact.id)
+                  setCliffTick((n) => n + 1)
                   store.openChat(contact.id)
                   nav(`/chats/${contact.id}`, {
                     state: {

@@ -1,7 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ALL_TAGS, CAST } from '../data/cast'
+import {
+  plotTwistsFor,
+  saveDraftStarter,
+  type PlotTwistStarter,
+} from '../data/plotTwists'
 import { Avatar } from '../components/Avatar'
+import { PlotTwistStarters } from '../components/people/PlotTwistStarters'
 import type { LoopStore } from '../hooks/useLoopStore'
 import { peopleOverlapBadge } from '../ranking/reasons'
 
@@ -10,6 +16,8 @@ export function People({ store }: { store: LoopStore }) {
   const [query, setQuery] = useState('')
   const [tag, setTag] = useState<string | null>(null)
   const [followingOnly, setFollowingOnly] = useState(false)
+  const [sendingId, setSendingId] = useState<string | null>(null)
+  const [sendingLabel, setSendingLabel] = useState<string | null>(null)
 
   const followed = store.state.followedIds ?? []
   const muted = store.state.mutedIds ?? []
@@ -168,6 +176,21 @@ export function People({ store }: { store: LoopStore }) {
                   {isMuted ? 'Unmute' : 'Mute'}
                 </button>
               </div>
+              <PlotTwistStarters
+                starters={plotTwistsFor(contact.id)}
+                sendingLabel={
+                  sendingId === contact.id ? sendingLabel : null
+                }
+                onPick={(starter: PlotTwistStarter) => {
+                  setSendingId(contact.id)
+                  setSendingLabel(starter.label)
+                  saveDraftStarter(contact.id, starter.payload)
+                  store.openChat(contact.id)
+                  nav(`/chats/${contact.id}`, {
+                    state: { autoSend: starter.payload, fromPlotTwist: true },
+                  })
+                }}
+              />
             </article>
           )
         })}

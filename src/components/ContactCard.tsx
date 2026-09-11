@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Contact, ScoredCandidate } from '../ranking/types'
 import { Avatar } from './Avatar'
+import { CliffhangerTeaser } from './feed/CliffhangerTeaser'
 
 type ChipAction = 'more' | 'less' | 'mute'
 
@@ -8,6 +9,8 @@ export function ContactCard({
   contact,
   scored,
   preview,
+  cliffhangerText,
+  cliffhangerUnread,
   becauseTags,
   reasonChip,
   highRelevance,
@@ -26,6 +29,8 @@ export function ContactCard({
   contact: Contact
   scored: ScoredCandidate
   preview?: string
+  cliffhangerText?: string | null
+  cliffhangerUnread?: boolean
   becauseTags?: string[]
   reasonChip?: string
   highRelevance?: boolean
@@ -198,7 +203,15 @@ export function ContactCard({
               </button>
             )}
           </div>
-          <p className="preview preview-teaser">{preview ?? contact.opening}</p>
+          {cliffhangerText ? (
+            <CliffhangerTeaser
+              text={cliffhangerText}
+              unread={cliffhangerUnread}
+              isCliffhanger
+            />
+          ) : (
+            <p className="preview preview-teaser">{preview ?? contact.opening}</p>
+          )}
           {becauseTags && becauseTags.length > 0 && (
             <p className="because-line">
               Because you like:{' '}
